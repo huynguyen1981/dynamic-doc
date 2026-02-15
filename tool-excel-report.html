@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" href="data:,">
-    <title>Excel to Word - Bản Chốt Hình Ảnh</title>
+    <title>Excel to Word - Final Stable</title>
     
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.21.0/docxtemplater.js"></script>
@@ -13,117 +13,98 @@
 
     <style>
         :root { --p: #2563eb; --bg: #f8fafc; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .box { width: 100%; max-width: 500px; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-        label { display: block; font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 5px; text-transform: uppercase; }
-        input[type="file"] { width: 100%; margin-bottom: 20px; padding: 8px; border: 1px solid #ddd; border-radius: 8px; }
-        .btn { width: 100%; padding: 15px; background: #94a3b8; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: not-allowed; transition: 0.3s; }
-        #status { margin-top: 20px; text-align: center; font-size: 0.85rem; font-weight: 600; padding: 10px; border-radius: 8px; }
-        .loading { background: #fff7ed; color: #c2410c; }
-        .ready { background: #f0fdf4; color: #15803d; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify-content: center; padding-top: 50px; }
+        .box { width: 100%; max-width: 480px; background: white; padding: 35px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        h2 { text-align: center; color: #1e293b; margin-bottom: 25px; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; color: #64748b; margin-bottom: 8px; }
+        input[type="file"] { width: 100%; margin-bottom: 20px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 15px; background: #2563eb; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 1rem; }
+        #status { margin-top: 20px; text-align: center; font-weight: 600; font-size: 0.9rem; color: #475569; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2 style="text-align: center; color: #1e293b;">📊 Excel To Word (Fixed)</h2>
+    <h2>📊 Báo Cáo Tự Động</h2>
     
-    <label>1. File Word mẫu ({%HINH_ANH})</label>
-    <input type="file" id="wordFile" accept=".docx">
+    <label>1. File Word mẫu (Chứa thẻ {%HINH_ANH})</label>
+    <input type="file" id="wordInp" accept=".docx">
 
-    <label>2. File Excel (Cột HINH_ANH không có %)</label>
-    <input type="file" id="xlsxFile" accept=".xlsx">
+    <label>2. File Excel (Cột HINH_ANH)</label>
+    <input type="file" id="excelInp" accept=".xlsx">
 
     <label>3. Chọn tất cả ảnh khảo sát</label>
-    <input type="file" id="imgFiles" multiple accept="image/*">
+    <input type="file" id="imgInp" multiple accept="image/*">
 
-    <button class="btn" id="mainBtn" disabled onclick="process()">ĐANG KIỂM TRA THƯ VIỆN...</button>
-    <div id="status" class="loading">⏳ Chờ kết nối...</div>
+    <button class="btn" onclick="generate()">🚀 XUẤT BÁO CÁO NGAY</button>
+    <div id="status">Sẵn sàng!</div>
 </div>
 
 <script>
-    let photoLib = {};
-    const btn = document.getElementById('mainBtn');
-    const status = document.getElementById('status');
+    let photoVault = {};
 
-    // Chờ thư viện nạp xong
-    const checkTimer = setInterval(() => {
-        const isDocxReady = window.docxtemplater || window.Docxtemplater;
-        const isImgReady = window.ImageModule || window.DocxtemplaterImageModuleV2;
-        if (window.PizZip && isDocxReady && window.XLSX && isImgReady) {
-            clearInterval(checkTimer);
-            btn.disabled = false;
-            btn.style.background = "var(--p)";
-            btn.style.cursor = "pointer";
-            btn.innerText = "🚀 XUẤT FILE NGAY";
-            status.innerText = "✅ Đã sẵn sàng nạp dữ liệu!";
-            status.className = "ready";
-        }
-    }, 500);
-
-    // Đọc ảnh vào bộ nhớ
-    document.getElementById('imgFiles').onchange = (e) => {
-        photoLib = {};
+    // Nạp ảnh vào bộ nhớ ngay khi chọn
+    document.getElementById('imgInp').onchange = (e) => {
+        photoVault = {};
         Array.from(e.target.files).forEach(file => {
-            const r = new FileReader();
-            r.onload = (ev) => { photoLib[file.name] = ev.target.result; };
-            r.readAsArrayBuffer(file);
+            const reader = new FileReader();
+            reader.onload = (ev) => { photoVault[file.name] = ev.target.result; };
+            reader.readAsArrayBuffer(file);
         });
     };
 
-    async function process() {
-        const wInput = document.getElementById('wordFile').files[0];
-        const xInput = document.getElementById('xlsxFile').files[0];
-        if(!wInput || !xInput) return alert("Bồ ơi, chọn đủ Word và Excel đã!");
-
+    async function generate() {
+        const status = document.getElementById('status');
         try {
-            status.innerText = "⏳ Đang xử lý (Né lỗi Namespace)...";
-            const wordBuf = await wInput.arrayBuffer();
-            const xlsxBuf = await xInput.arrayBuffer();
-            
-            // Đọc Excel và làm sạch dữ liệu
-            const wb = XLSX.read(xlsxBuf, {type: 'array'});
-            const rawData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            const rows = JSON.parse(JSON.stringify(rawData)); // Bước "rửa" dữ liệu quan trọng
+            const fWord = document.getElementById('wordInp').files[0];
+            const fExcel = document.getElementById('excelInp').files[0];
+            if(!fWord || !fExcel) return alert("Bồ chọn thiếu file rồi kìa!");
 
-            // Cấu hình Image Module
+            status.innerText = "⏳ Đang render file...";
+
+            // 1. Đọc Excel
+            const exBuf = await fExcel.arrayBuffer();
+            const workbook = XLSX.read(exBuf, {type: 'array'});
+            const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+            const rows = JSON.parse(JSON.stringify(rawData)); // "Rửa" sạch dữ liệu
+
+            // 2. Cấu hình Image Module
             const imgOptions = {
-                getImage: (tagValue) => {
-                    if (!photoLib[tagValue]) {
-                        console.warn("Không tìm thấy file ảnh: ", tagValue);
-                        return null;
-                    }
-                    return photoLib[tagValue];
-                },
-                getSize: () => [450, 300] // Độ rộng 450px, cao 300px trong Word
+                getImage: function(tagValue) { return photoVault[tagValue]; },
+                getSize: function() { return [500, 350]; }
             };
-
             const ImgModuleCtor = window.ImageModule || window.DocxtemplaterImageModuleV2;
-            const zip = new PizZip(wordBuf);
-            const DocxTemplate = window.docxtemplater || window.Docxtemplater;
+            const imgInstance = new ImgModuleCtor(imgOptions);
+
+            // 3. Xử lý file Word (Cách nạp chuẩn cho bản 3.21.0)
+            const wordBuf = await fWord.arrayBuffer();
             
-            // Khởi tạo
-            const doc = new DocxTemplate(zip, {
-                modules: [new ImgModuleCtor(imgOptions)],
-                paragraphLoop: true,
-                linebreaks: true
-            });
+            // Ở bản 3.1.4, PizZip nạp vào window.PizZip
+            const zip = new window.PizZip(wordBuf);
+            
+            // Ở bản 3.21.0, khởi tạo và nạp module theo cách này:
+            const doc = new window.docxtemplater();
+            doc.loadZip(zip);
+            doc.attachModule(imgInstance);
+            
+            doc.setData({ rows: rows });
+            
+            // Chạy render
+            doc.render();
 
-            // RENDER - Dữ liệu rows có key "HINH_ANH" sẽ khớp với thẻ "{%HINH_ANH}"
-            doc.render({ rows: rows });
-
+            // 4. Xuất file
             const out = doc.getZip().generate({
                 type: "blob",
                 mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             });
             
             saveAs(out, "Bao_Cao_Hoan_Thien.docx");
-            status.innerText = "✅ Xong rồi! Hình ảnh đã chèn mượt mà.";
-            status.className = "ready";
-        } catch (err) {
-            console.error(err);
-            alert("Lỗi: " + err.message);
-            status.innerText = "❌ Lỗi khi render.";
+            status.innerHTML = "<span style='color:green'>✅ Xuất file thành công rực rỡ!</span>";
+
+        } catch (e) {
+            console.error(e);
+            status.innerHTML = "<span style='color:red'>❌ Lỗi: " + e.message + "</span>";
+            alert("Lỗi: " + e.message);
         }
     }
 </script>
