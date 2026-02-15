@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Doc Pro - Universe Edition</title>
+    <title>Global Doc - Final Universe</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -12,177 +12,137 @@
     <script src="https://unpkg.com/docxtemplater-image-module-free@1.1.1/build/bundle.js"></script>
 
     <style>
-        :root { --primary: #4f46e5; --secondary: #10b981; --bg: #f3f4f6; --text: #1f2937; }
-        body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg); color: var(--text); line-height: 1.5; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); padding: 40px; }
+        :root { --p: #6366f1; --s: #10b981; --bg: #0f172a; --card: #1e293b; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #f8fafc; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: var(--card); padding: 30px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 1px solid #334155; }
         
-        /* Header & Guide */
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { margin: 0; color: var(--primary); font-size: 2rem; }
-        .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; background: #eef2ff; padding: 20px; border-radius: 12px; border: 1px solid #c7d2fe; }
-        .guide-item { font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
-        .guide-item b { color: var(--primary); background: white; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
-
-        /* Template List */
-        .section-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
-        .tpl-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border: 1px solid #e5e7eb; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-        .tpl-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; transition: background 0.2s; cursor: pointer; }
-        .tpl-item:hover { background: #f9fafb; }
-        .tpl-item input { width: 18px; height: 18px; cursor: pointer; }
-
-        /* Main Form Layout */
-        .main-layout { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px; margin-top: 30px; border-top: 1px solid #f3f4f6; pt: 30px; }
-        .field-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 15px; border-left: 5px solid var(--primary); transition: transform 0.2s; }
-        .field-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .field-card.date { border-left-color: var(--secondary); }
-        .field-card.image { border-left-color: #f59e0b; }
-        label { display: block; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; color: #6b7280; margin-bottom: 8px; }
-        input[type="text"], input[type="date"], input[type="file"] { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; box-sizing: border-box; }
-
-        /* Buttons & Status */
-        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.3s; font-size: 1rem; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: #4338ca; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
-        .btn-success { background: var(--secondary); color: white; margin-top: 20px; display: none; }
-        #status { text-align: center; margin: 20px 0; font-weight: 600; color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .header h1 { margin: 0; background: linear-gradient(to right, #818cf8, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.2rem; }
+        .step-box { background: #334155; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 6px solid var(--p); }
         
-        /* JSON Preview */
-        .preview-box { background: #111827; color: #34d399; padding: 20px; border-radius: 10px; font-family: 'Fira Code', monospace; font-size: 0.85rem; overflow-x: auto; margin-top: 0; }
+        .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+        .tpl-item { background: #1e293b; border: 1px solid #475569; padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; }
+        .tpl-item:hover { border-color: var(--p); background: #334155; }
         
-        /* Loading Animation */
-        .spinner { width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 25px; }
+        .field-card { background: #1e293b; padding: 15px; border-radius: 10px; border-bottom: 3px solid var(--p); margin-bottom: 10px; }
+        .field-card.date { border-bottom-color: var(--s); }
+        
+        label { display: block; font-size: 0.75rem; color: #94a3b8; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; }
+        input { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; box-sizing: border-box; }
+        
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.3s; margin-top: 10px; }
+        .btn-p { background: var(--p); color: white; }
+        .btn-p:hover { filter: brightness(1.2); transform: scale(1.01); }
+        .btn-s { background: var(--s); color: white; display: none; }
+        
+        #status { color: #818cf8; font-weight: bold; text-align: center; margin: 15px 0; }
+        pre { background: #0f172a; padding: 15px; border-radius: 10px; color: #34d399; font-size: 0.8rem; border: 1px solid #334155; max-height: 200px; overflow: auto; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header">
-        <h1>🌌 Universe Doc Generator</h1>
-        <p style="color: #6b7280;">Hệ thống tạo văn bản tự động cấp độ vũ trụ</p>
+    <div class="header" style="text-align: center;">
+        <h1>🌌 FINAL UNIVERSE DOC</h1>
+        <p style="color: #94a3b8;">Hệ thống tự động hóa văn bản vĩnh cửu</p>
     </div>
 
-    <div class="guide-grid">
-        <div class="guide-item">✍️ Chữ thường: <b>{TEXT}</b></div>
-        <div class="guide-item">📅 Ngày tháng: <b>{d%DATE}</b></div>
-        <div class="guide-item">🖼️ Hình ảnh: <b>{%IMG}</b></div>
+    <div class="step-box">
+        <strong>📌 Bước 1: Chọn mẫu của bồ</strong>
+        <div id="tplArea" class="tpl-grid">Đang nạp file JSON...</div>
+        <button class="btn btn-p" onclick="doAnalyze()">🔍 BẮT ĐẦU QUÉT MẪU</button>
     </div>
 
-    <div class="section-title">📂 Bước 1: Chọn mẫu văn bản</div>
-    <div class="tpl-list" id="templateList">Đang tải danh sách mẫu...</div>
+    <div id="status">Hệ thống đã sẵn sàng.</div>
 
-    <button class="btn btn-primary" id="mainBtn" onclick="handleScan()">🔍 QUÉT DỮ LIỆU TỪ MẪU</button>
-    <div id="status"></div>
-
-    <div class="main-layout" id="formArea" style="display: none;">
-        <div class="form-inputs">
-            <div class="section-title">📝 Bước 2: Nhập thông tin</div>
-            <div id="dynamicFields"></div>
-        </div>
-        <div class="form-preview">
-            <div class="section-title">📋 Dữ liệu thực tế (JSON)</div>
-            <div class="preview-box">
-                <pre id="previewData">{}</pre>
+    <div id="mainForm" style="display:none;">
+        <div class="input-group">
+            <div>
+                <strong style="color:var(--p)">📝 Bước 2: Nhập liệu</strong>
+                <div id="fields" style="margin-top:15px;"></div>
             </div>
-            <button class="btn btn-success" id="zipBtn" onclick="handleGenerate()">📦 XUẤT FILE BUNDLE (.ZIP)</button>
+            <div>
+                <strong style="color:var(--s)">📋 Xem trước dữ liệu</strong>
+                <pre id="jsonPreview">{}</pre>
+                <button class="btn btn-s" id="zipBtn" onclick="doGenerate()">📦 TẢI BỘ FILE ZIP (.ZIP)</button>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    let imagesData = {};
-    const statusEl = document.getElementById('status');
+    let imgData = {};
+    const status = document.getElementById('status');
 
-    // --- BẢO HIỂM THƯ VIỆN NÂNG CẤP ---
-    function checkLibraries() {
-        const ImgMod = window.DocxtemplaterImageModuleV2 || window.ImageModule;
-        return (typeof PizZip !== 'undefined' && typeof JSZip !== 'undefined' && typeof window.docxtemplater !== 'undefined' && ImgMod);
-    }
-
+    // Khởi tạo lấy file JSON
     async function init() {
         try {
             const res = await fetch('templates.json');
             const data = await res.json();
-            document.getElementById('templateList').innerHTML = data.map(t => `
+            document.getElementById('tplArea').innerHTML = data.map(t => `
                 <label class="tpl-item">
                     <input type="checkbox" class="tpl-check" value="${t.url}" data-name="${t.name}">
                     <span>${t.name}</span>
                 </label>
             `).join('');
-        } catch (e) { statusEl.innerHTML = "❌ Lỗi: Không tìm thấy file templates.json!"; }
+        } catch (e) { status.innerText = "❌ Không tìm thấy templates.json!"; }
     }
 
-    // Logic chờ thư viện không gây đơ web
-    async function ensureLibs() {
-        if (checkLibraries()) return true;
-        statusEl.innerHTML = '<div class="spinner"></div> Đang khởi động hệ thống thư viện...';
-        for(let i=0; i<20; i++) { // Thử lại trong 10 giây
-            await new Promise(r => setTimeout(r, 500));
-            if (checkLibraries()) return true;
-        }
-        return false;
-    }
+    // Hàm quét mẫu
+    async function doAnalyze() {
+        const checks = document.querySelectorAll('.tpl-check:checked');
+        if (checks.length === 0) return alert("Bồ chọn mẫu đã!");
 
-    async function handleScan() {
-        const ready = await ensureLibs();
-        if (!ready) return alert("Không thể tải thư viện. Bồ kiểm tra lại mạng nhé!");
-
-        const checked = document.querySelectorAll('.tpl-check:checked');
-        if (checked.length === 0) return alert("Bồ ơi, chọn ít nhất 1 mẫu đã!");
-
-        statusEl.innerHTML = '<div class="spinner"></div> Đang phân tích mẫu văn bản...';
-        const tags = { text: new Set(), image: new Set(), date: new Set() };
+        status.innerText = "⏳ Đang phân tích mẫu...";
+        const tags = { text: new Set(), img: new Set(), date: new Set() };
 
         try {
-            for (let input of checked) {
-                const res = await fetch(input.value);
+            for (let c of checks) {
+                const res = await fetch(c.value);
                 const zip = new PizZip(await res.arrayBuffer());
                 const content = zip.files["word/document.xml"].asText();
                 const matches = content.match(/\{([^{}]+)\}/g) || [];
                 
                 matches.forEach(m => {
                     let t = m.replace(/<[^>]+>/g, "").replace(/[{}]/g, "").trim();
-                    if(t.startsWith('%')) tags.image.add(t.substring(1));
+                    if(t.startsWith('%')) tags.img.add(t.substring(1));
                     else if(t.startsWith('d%')) tags.date.add(t);
                     else tags.text.add(t);
                 });
             }
-            renderForm(tags);
-            statusEl.innerHTML = "✅ Đã quét xong! Mời bồ nhập liệu.";
-        } catch (e) { statusEl.innerHTML = "❌ Lỗi quét mẫu: " + e.message; }
+            renderInputs(tags);
+            status.innerText = "✅ Đã quét xong!";
+        } catch (e) { status.innerText = "❌ Lỗi file: " + e.message; }
     }
 
-    function renderForm(tags) {
-        const container = document.getElementById('dynamicFields');
-        container.innerHTML = "";
+    function renderInputs(tags) {
+        const f = document.getElementById('fields');
+        f.innerHTML = "";
         
-        tags.image.forEach(t => container.innerHTML += createField(t, 'image', 'file'));
-        tags.date.forEach(t => container.innerHTML += createField(t, 'date', 'date'));
-        tags.text.forEach(t => container.innerHTML += createField(t, 'text', 'text'));
+        tags.img.forEach(t => f.innerHTML += makeInput(t, 'image', 'file'));
+        tags.date.forEach(t => f.innerHTML += makeInput(t, 'date', 'date'));
+        tags.text.forEach(t => f.innerHTML += makeInput(t, 'text', 'text'));
 
-        document.getElementById('formArea').style.display = "grid";
+        document.getElementById('mainForm').style.display = "grid";
         document.getElementById('zipBtn').style.display = "block";
-        updateUI();
+        updateJSON();
     }
 
-    function createField(tag, typeClass, inputType) {
+    function makeInput(tag, cls, type) {
         let label = tag.startsWith('d%') ? tag.substring(2) : tag;
-        let onEvt = inputType === 'file' ? `onchange="saveImg('${tag}', this)"` : `oninput="updateUI()"`;
-        let defVal = inputType === 'date' ? new Date().toISOString().split('T')[0] : "";
-        return `
-            <div class="field-card ${typeClass}">
-                <label>${label}</label>
-                <input type="${inputType}" class="t-val" data-tag="${tag}" value="${defVal}" ${onEvt}>
-            </div>`;
+        let evt = type === 'file' ? `onchange="readImg('${tag}', this)"` : `oninput="updateJSON()"`;
+        let val = type === 'date' ? new Date().toISOString().split('T')[0] : "";
+        return `<div class="field-card ${cls}"><label>${label}</label>
+                <input type="${type}" class="t-val" data-tag="${tag}" value="${val}" ${evt}></div>`;
     }
 
-    function saveImg(tag, input) {
+    function readImg(tag, input) {
         const reader = new FileReader();
-        reader.onload = (e) => { imagesData[tag] = e.target.result; updateUI(); };
+        reader.onload = (e) => { imgData[tag] = e.target.result; updateJSON(); };
         reader.readAsArrayBuffer(input.files[0]);
     }
 
-    function updateUI() {
+    function updateJSON() {
         const data = {};
         document.querySelectorAll('.t-val').forEach(i => {
             let tag = i.getAttribute('data-tag');
@@ -191,31 +151,31 @@
                 data[tag] = `${m}/${d}/${y}`;
             } else if (i.type !== 'file') data[tag] = i.value;
         });
-        document.getElementById('previewData').innerText = JSON.stringify(data, null, 4);
+        document.getElementById('jsonPreview').innerText = JSON.stringify(data, null, 4);
     }
 
-    async function handleGenerate() {
-        statusEl.innerHTML = '<div class="spinner"></div> Đang đóng gói Bundle...';
+    async function doGenerate() {
+        status.innerText = "⏳ Đang tạo ZIP...";
         const ImgMod = window.DocxtemplaterImageModuleV2 || window.ImageModule;
-        const checked = document.querySelectorAll('.tpl-check:checked');
-        const zipOutput = new JSZip();
-        const data = JSON.parse(document.getElementById('previewData').innerText);
+        const checks = document.querySelectorAll('.tpl-check:checked');
+        const zipOut = new JSZip();
+        const data = JSON.parse(document.getElementById('jsonPreview').innerText);
 
         try {
-            const imgOpts = new ImgMod({
-                getImage: (tag) => imagesData[tag],
-                getSize: (img, tag) => tag.toLowerCase().includes('logo') ? [120, 120] : [150, 60]
+            const opts = new ImgMod({
+                getImage: (t) => imgData[t],
+                getSize: (i, t) => t.toLowerCase().includes('logo') ? [120, 120] : [150, 60]
             });
 
-            for (let input of checked) {
-                const res = await fetch(input.value);
-                const doc = new window.docxtemplater(new PizZip(await res.arrayBuffer()), { modules: [imgOpts] });
+            for (let c of checks) {
+                const res = await fetch(c.value);
+                const doc = new window.docxtemplater(new PizZip(await res.arrayBuffer()), { modules: [opts] });
                 doc.render(data);
-                zipOutput.file(`${input.getAttribute('data-name')}.docx`, doc.getZip().generate({type:"blob"}));
+                zipOut.file(`${c.getAttribute('data-name')}.docx`, doc.getZip().generate({type:"blob"}));
             }
-            saveAs(await zipOutput.generateAsync({type:"blob"}), `Universe_Bundle_${Date.now()}.zip`);
-            statusEl.innerHTML = "🚀 Xuất file thành công!";
-        } catch (e) { statusEl.innerHTML = "❌ Lỗi: " + e.message; }
+            saveAs(await zipOut.generateAsync({type:"blob"}), `Global_Package.zip`);
+            status.innerText = "🚀 Thành công rực rỡ!";
+        } catch (e) { alert("Lỗi xuất file: " + e.message); }
     }
     window.onload = init;
 </script>
