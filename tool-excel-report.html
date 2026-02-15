@@ -2,8 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" href="data:,">
-    <title>Excel to Word - Final Stable</title>
+    <title>Báo Cáo Hoàn Hảo - Fix Namespace Error</title>
     
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.21.0/docxtemplater.js"></script>
@@ -12,31 +11,30 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
-        :root { --p: #2563eb; --bg: #f8fafc; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify-content: center; padding-top: 50px; }
-        .box { width: 100%; max-width: 480px; background: white; padding: 35px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-        h2 { text-align: center; color: #1e293b; margin-bottom: 25px; }
-        label { display: block; font-size: 0.85rem; font-weight: 600; color: #64748b; margin-bottom: 8px; }
-        input[type="file"] { width: 100%; margin-bottom: 20px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 15px; background: #2563eb; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 1rem; }
-        #status { margin-top: 20px; text-align: center; font-weight: 600; font-size: 0.9rem; color: #475569; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding-top: 50px; }
+        .box { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 480px; }
+        h2 { text-align: center; color: #333; }
+        label { display: block; margin: 15px 0 5px; font-weight: bold; font-size: 0.9rem; }
+        input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 15px; background: #2563eb; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        #status { margin-top: 20px; text-align: center; font-weight: 600; color: #666; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>📊 Báo Cáo Tự Động</h2>
+    <h2>📊 Xuất Báo Cáo Sạch</h2>
     
-    <label>1. File Word mẫu (Chứa thẻ {%HINH_ANH})</label>
+    <label>1. Mẫu Word ({%HINH_ANH})</label>
     <input type="file" id="wordInp" accept=".docx">
 
-    <label>2. File Excel (Cột HINH_ANH)</label>
+    <label>2. Dữ liệu Excel (Cột HINH_ANH)</label>
     <input type="file" id="excelInp" accept=".xlsx">
 
-    <label>3. Chọn tất cả ảnh khảo sát</label>
+    <label>3. Ảnh khảo sát</label>
     <input type="file" id="imgInp" multiple accept="image/*">
 
-    <button class="btn" onclick="generate()">🚀 XUẤT BÁO CÁO NGAY</button>
+    <button class="btn" onclick="processReport()">🚀 TẠO BÁO CÁO NGAY</button>
     <div id="status">Sẵn sàng!</div>
 </div>
 
@@ -53,41 +51,39 @@
         });
     };
 
-    async function generate() {
-        const status = document.getElementById('status');
+    async function processReport() {
+        const st = document.getElementById('status');
         try {
             const fWord = document.getElementById('wordInp').files[0];
             const fExcel = document.getElementById('excelInp').files[0];
-            if(!fWord || !fExcel) return alert("Bồ chọn thiếu file rồi kìa!");
+            if(!fWord || !fExcel) return alert("Bồ chọn thiếu file rồi!");
 
-            status.innerText = "⏳ Đang render file...";
+            st.innerText = "⏳ Đang xử lý dữ liệu sạch...";
 
-            // 1. Đọc Excel
+            // 1. Đọc và "rửa" dữ liệu Excel
             const exBuf = await fExcel.arrayBuffer();
             const workbook = XLSX.read(exBuf, {type: 'array'});
             const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-            const rows = JSON.parse(JSON.stringify(rawData)); // "Rửa" sạch dữ liệu
+            const cleanRows = JSON.parse(JSON.stringify(rawData)); // Loại bỏ các thuộc tính lạ gây lỗi
 
             // 2. Cấu hình Image Module
             const imgOptions = {
                 getImage: function(tagValue) { return photoVault[tagValue]; },
                 getSize: function() { return [500, 350]; }
             };
-            const ImgModuleCtor = window.ImageModule || window.DocxtemplaterImageModuleV2;
-            const imgInstance = new ImgModuleCtor(imgOptions);
+            const ImgModule = window.ImageModule || window.DocxtemplaterImageModuleV2;
+            const imgInstance = new ImgModule(imgOptions);
 
-            // 3. Xử lý file Word (Cách nạp chuẩn cho bản 3.21.0)
+            // 3. Xử lý file Word (Quy trình chuẩn né lỗi Namespace)
             const wordBuf = await fWord.arrayBuffer();
-            
-            // Ở bản 3.1.4, PizZip nạp vào window.PizZip
             const zip = new window.PizZip(wordBuf);
             
-            // Ở bản 3.21.0, khởi tạo và nạp module theo cách này:
+            // Khởi tạo docxtemplater theo cách an toàn nhất cho bản 3.21.0
             const doc = new window.docxtemplater();
             doc.loadZip(zip);
-            doc.attachModule(imgInstance);
+            doc.attachModule(imgInstance); // Gắn module ảnh riêng biệt
             
-            doc.setData({ rows: rows });
+            doc.setData({ rows: cleanRows });
             
             // Chạy render
             doc.render();
@@ -98,13 +94,13 @@
                 mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             });
             
-            saveAs(out, "Bao_Cao_Hoan_Thien.docx");
-            status.innerHTML = "<span style='color:green'>✅ Xuất file thành công rực rỡ!</span>";
+            saveAs(out, "Bao_Cao_Da_Fix_Loi.docx");
+            st.innerHTML = "<span style='color:green'>✅ Thành công rực rỡ!</span>";
 
         } catch (e) {
             console.error(e);
-            status.innerHTML = "<span style='color:red'>❌ Lỗi: " + e.message + "</span>";
-            alert("Lỗi: " + e.message);
+            st.innerHTML = "<span style='color:red'>❌ Lỗi: " + e.message + "</span>";
+            alert("Vẫn lỗi bồ ơi: " + e.message);
         }
     }
 </script>
