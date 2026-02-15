@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" href="data:,">
-    <title>Báo Cáo Khảo Sát - Bản Fix Link Chuẩn</title>
+    <title>Excel to Word - Stable Version</title>
     
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.42.0/docxtemplater.js"></script>
@@ -14,91 +14,103 @@
     <style>
         :root { --p: #2563eb; --bg: #f8fafc; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .box { width: 100%; max-width: 550px; background: white; padding: 40px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-        .btn { width: 100%; padding: 16px; background: #94a3b8; color: white; border: none; border-radius: 12px; font-weight: 700; cursor: not-allowed; transition: 0.3s; margin-top: 10px; }
-        #status { margin-top: 20px; text-align: center; font-size: 0.85rem; font-weight: 600; padding: 12px; border-radius: 8px; border: 1px solid transparent; }
-        .loading { background: #fff7ed; color: #c2410c; border-color: #ffedd5; }
-        .ready { background: #f0fdf4; color: #15803d; border-color: #dcfce7; }
+        .box { width: 100%; max-width: 500px; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .btn { width: 100%; padding: 15px; background: #94a3b8; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: not-allowed; transition: 0.3s; margin-top: 15px; }
+        #status { margin-top: 20px; text-align: center; font-size: 0.85rem; font-weight: 600; padding: 10px; border-radius: 8px; }
+        .loading { background: #fff7ed; color: #c2410c; }
+        .ready { background: #f0fdf4; color: #15803d; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2 style="text-align: center; color: #1e293b; margin-top: 0;">📊 Excel To Word Report</h2>
+    <h2 style="text-align: center; margin-bottom: 25px;">📊 Báo Cáo Khảo Sát Tự Động</h2>
     
     <div style="margin-bottom:15px">
-        <label>1. Mẫu Word ({#rows}...{%ANH}...{/rows})</label>
-        <input type="file" id="wordTpl" accept=".docx" style="width:100%">
+        <label style="display:block; font-size:0.8rem; font-weight:700; color:#64748b; margin-bottom:5px">1. FILE MẪU WORD</label>
+        <input type="file" id="wordFile" accept=".docx" style="width:100%">
     </div>
-    
+
     <div style="margin-bottom:15px">
-        <label>2. Dữ liệu Excel (.xlsx)</label>
-        <input type="file" id="excelData" accept=".xlsx" style="width:100%">
+        <label style="display:block; font-size:0.8rem; font-weight:700; color:#64748b; margin-bottom:5px">2. FILE EXCEL DỮ LIỆU</label>
+        <input type="file" id="xlsxFile" accept=".xlsx" style="width:100%">
     </div>
-    
+
     <div style="margin-bottom:15px">
-        <label>3. Chọn tất cả ảnh khảo sát</label>
+        <label style="display:block; font-size:0.8rem; font-weight:700; color:#64748b; margin-bottom:5px">3. CHỌN TẤT CẢ ẢNH</label>
         <input type="file" id="imgFiles" multiple accept="image/*" style="width:100%">
     </div>
 
-    <button class="btn" id="mainBtn" disabled onclick="handleExport()">ĐANG ĐỢI THƯ VIỆN...</button>
-    <div id="status" class="loading">⏳ Đang nạp tài nguyên...</div>
+    <button class="btn" id="mainBtn" disabled onclick="process()">ĐANG KIỂM TRA THƯ VIỆN...</button>
+    <div id="status" class="loading">⏳ Chờ nạp tài nguyên...</div>
 </div>
 
 <script>
-    let photoData = {};
+    let photoLib = {};
     const btn = document.getElementById('mainBtn');
     const status = document.getElementById('status');
 
-    // Kiểm tra thư viện nạp xong chưa
+    // Kiểm tra xem ImageModule nạp vào biến nào
     const checkTimer = setInterval(() => {
-        // Lưu ý: Link imagemodule.min.js thường nạp vào biến ImageModule
-        const imgModReady = !!window.ImageModule || !!window.DocxtemplaterImageModuleV2;
+        const isDocxReady = window.docxtemplater || window.Docxtemplater;
+        const isImgReady = window.ImageModule || window.DocxtemplaterImageModuleV2;
 
-        if (window.PizZip && (window.docxtemplater || window.Docxtemplater) && window.XLSX && imgModReady) {
+        if (window.PizZip && isDocxReady && window.XLSX && isImgReady) {
             clearInterval(checkTimer);
             btn.disabled = false;
             btn.style.background = "var(--p)";
             btn.style.cursor = "pointer";
-            btn.innerText = "🚀 TẠO BÁO CÁO NGAY";
-            status.innerText = "✅ Link chuẩn đã nạp thành công!";
+            btn.innerText = "🚀 XUẤT FILE TỔNG HỢP";
+            status.innerText = "✅ Thư viện bồ chọn đã SẴN SÀNG!";
             status.className = "ready";
         }
-    }, 300);
+    }, 500);
 
     document.getElementById('imgFiles').onchange = (e) => {
-        photoData = {};
+        photoLib = {};
         Array.from(e.target.files).forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (ev) => { photoData[file.name] = ev.target.result; };
-            reader.readAsArrayBuffer(file);
+            const r = new FileReader();
+            r.onload = (ev) => { photoLib[file.name] = ev.target.result; };
+            r.readAsArrayBuffer(file);
         });
     };
 
-    async function handleExport() {
+    async function process() {
+        const wordFile = document.getElementById('wordFile').files[0];
+        const xlsxFile = document.getElementById('xlsxFile').files[0];
+
+        if(!wordFile || !xlsxFile) return alert("Bồ chọn thiếu file rồi!");
+
         try {
-            status.innerText = "⏳ Đang tạo file báo cáo...";
-            const wordBuf = await document.getElementById('wordTpl').files[0].arrayBuffer();
-            const exBuf = await document.getElementById('excelData').files[0].arrayBuffer();
+            status.innerText = "⏳ Đang xử lý dữ liệu...";
+            const wordBuf = await wordFile.arrayBuffer();
+            const xlsxBuf = await xlsxFile.arrayBuffer();
             
-            const rows = XLSX.utils.sheet_to_json(XLSX.read(exBuf).Sheets[XLSX.read(exBuf).SheetNames[0]]);
-            
-            const ImgModule = window.ImageModule || window.DocxtemplaterImageModuleV2;
-            const imgInstance = new ImgModule({
-                getImage: (name) => photoData[name],
-                getSize: () => [500, 350]
-            });
+            const workbook = XLSX.read(xlsxBuf, {type: 'array'});
+            const data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+
+            const ImgModuleCtor = window.ImageModule || window.DocxtemplaterImageModuleV2;
+            const imgOpts = {
+                getImage: (tagValue) => photoLib[tagValue],
+                getSize: () => [450, 300] // Kích thước ảnh mặc định
+            };
 
             const zip = new PizZip(wordBuf);
-            const Docx = window.docxtemplater || window.Docxtemplater;
-            const doc = new Docx(zip, { modules: [imgInstance], paragraphLoop: true, linebreaks: true });
+            const DocxTemplate = window.docxtemplater || window.Docxtemplater;
+            const doc = new DocxTemplate(zip, {
+                modules: [new ImgModuleCtor(imgOpts)],
+                paragraphLoop: true,
+                linebreaks: true
+            });
 
-            doc.render({ rows: rows });
-            saveAs(doc.getZip().generate({ type: "blob" }), "Bao_Cao_Tong_Hop.docx");
-            status.innerText = "✅ Xuất file thành công!";
-        } catch (e) {
-            alert("Lỗi: " + e.message);
-            status.innerText = "❌ Lỗi khi xử lý.";
+            doc.render({ rows: data });
+            
+            saveAs(doc.getZip().generate({type: "blob"}), "Ket_Qua_Bao_Cao.docx");
+            status.innerText = "✅ Xuất báo cáo thành công!";
+        } catch (err) {
+            console.error(err);
+            alert("Lỗi render: " + err.message);
+            status.innerText = "❌ Lỗi hệ thống.";
         }
     }
 </script>
