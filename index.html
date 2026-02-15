@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Doc Generator Pro - Final Stable</title>
+    <title>Global Doc Generator Pro - Final Core</title>
     
     <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.4/dist/pizzip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.42.0/build/docxtemplater.js"></script>
@@ -13,13 +13,14 @@
     <style>
         :root { --p: #2563eb; --s: #059669; --bg: #f8fafc; --gray: #64748b; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: #1e293b; padding: 20px; margin: 0; }
-        .container { max-width: 950px; margin: 0 auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .container { max-width: 950px; margin: 0 auto; background: white; padding: 40px; border-radius: 166px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .header { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; }
         .header h1 { margin: 0; font-size: 1.7rem; color: var(--p); }
         .guide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
         .guide-card { background: #eff6ff; padding: 15px; border-radius: 10px; border: 1px solid #dbeafe; font-size: 0.85rem; }
         .guide-card code { display: block; color: var(--p); font-weight: 700; margin-bottom: 5px; }
         .card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 30px; }
+        .card-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .tpl-item { display: flex; align-items: center; padding: 12px 15px; border: 1px solid #f1f5f9; border-radius: 8px; cursor: pointer; }
         .work-area { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; border-top: 2px solid #f1f5f9; padding-top: 30px; }
@@ -30,26 +31,10 @@
         .btn { padding: 14px 28px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; width: 100%; font-size: 1rem; }
         .btn-p { background: var(--p); color: white; }
         .btn-s { background: var(--s); color: white; margin-top: 20px; display: none; }
-        
-        /* --- CHỈ CHỈNH NHẸ CHỖ NÀY --- */
-        .preview-pane { 
-            background: #0f172a; 
-            border-radius: 12px; 
-            padding: 20px; 
-            color: #34d399; 
-            font-size: 0.8rem; 
-            overflow: auto; 
-            max-height: 500px; 
-            word-break: break-all; /* Ngắt từ khi quá dài */
-        }
-        #jsonOut { 
-            margin: 0; 
-            white-space: pre-wrap; /* Quan trọng nhất: Giúp text tự xuống dòng */
-            word-wrap: break-word; 
-        }
-        /* ---------------------------- */
-
+        .preview-pane { background: #0f172a; border-radius: 12px; padding: 20px; color: #34d399; font-size: 0.8rem; overflow: auto; max-height: 450px; word-wrap: break-word; }
+        #jsonOut { white-space: pre-wrap; margin: 0; }
         #status { text-align: center; margin: 20px 0; font-weight: 600; color: #dc2626; }
+        .link-action { color: var(--p); background: none; border: none; text-decoration: underline; cursor: pointer; font-size: 0.85rem; padding: 0 5px; }
     </style>
 </head>
 <body>
@@ -63,16 +48,22 @@
     <div class="guide">
         <div class="guide-card"><code>{NAME}</code> Chữ ngắn</div>
         <div class="guide-card"><code>{d%DATE}</code> Ngày tháng</div>
-        <div class="guide-card"><code>{n%NOTE}</code> Văn bản dài (Enter xuống dòng ok)</div>
+        <div class="guide-card"><code>{n%NOTE}</code> Văn bản dài</div>
     </div>
 
     <div class="card">
-        <strong>1. Chọn mẫu văn bản</strong>
-        <div id="tplList" class="tpl-grid" style="margin-top:15px">Đang kiểm tra thư viện hệ thống...</div>
+        <div class="card-title">
+            <strong>1. Chọn mẫu văn bản</strong>
+            <div>
+                <button class="link-action" onclick="selAll(true)">Chọn tất cả</button> | 
+                <button class="link-action" onclick="selAll(false)">Bỏ chọn</button>
+            </div>
+        </div>
+        <div id="tplList" class="tpl-grid">Đang kiểm tra thư viện...</div>
         <button id="scanBtn" class="btn btn-p" style="margin-top:20px; opacity: 0.5; cursor: not-allowed;" disabled onclick="analyze()">🔍 QUÉT DỮ LIỆU TỪ MẪU</button>
     </div>
 
-    <div id="status">⏳ Đang tải thư viện, bồ đợi xíu...</div>
+    <div id="status">⏳ Đang tải thư viện...</div>
 
     <div id="workZone" class="work-area" style="display: none;">
         <div>
@@ -91,7 +82,7 @@
     const checkLibs = setInterval(() => {
         if (window.PizZip && window.docxtemplater) {
             clearInterval(checkLibs);
-            document.getElementById('status').innerText = "✅ Hệ thống đã sẵn sàng!";
+            document.getElementById('status').innerText = "✅ Hệ thống sẵn sàng!";
             document.getElementById('status').style.color = "var(--p)";
             document.getElementById('scanBtn').disabled = false;
             document.getElementById('scanBtn').style.opacity = "1";
@@ -110,23 +101,23 @@
                     <span style="margin-left:10px">${t.name}</span>
                 </label>
             `).join('');
-        } catch (e) { document.getElementById('status').innerText = "Lỗi: Không tìm thấy file templates.json"; }
+        } catch (e) { document.getElementById('status').innerText = "Lỗi: File templates.json!"; }
     }
+
+    // --- HÀM SELECT ALL QUAY TRỞ LẠI ---
+    function selAll(s) { document.querySelectorAll('.tpl-check').forEach(c => c.checked = s); }
 
     async function analyze() {
         const checked = document.querySelectorAll('.tpl-check:checked');
-        if (!checked.length) return alert("Bồ chưa chọn mẫu nào!");
-
+        if (!checked.length) return alert("Bồ chọn mẫu đã!");
         document.getElementById('status').innerText = "⏳ Đang quét tags...";
         const tags = { text: new Set(), date: new Set(), note: new Set() };
-
         try {
             for (let item of checked) {
                 const res = await fetch(item.value);
                 const buf = await res.arrayBuffer();
                 const zip = new window.PizZip(buf);
                 const content = zip.files["word/document.xml"].asText();
-                
                 (content.match(/\{[^{}]+\}/g) || []).forEach(m => {
                     let t = m.replace(/<[^>]+>/g, "").replace(/[{}]/g, "").trim();
                     if(t.startsWith('n%')) tags.note.add(t);
@@ -136,38 +127,28 @@
             }
             renderInputs(tags);
             document.getElementById('status').innerText = "✅ Quét thành công!";
-        } catch (e) { 
-            console.error(e);
-            document.getElementById('status').innerText = "Lỗi quét file: " + e.message; 
-        }
+        } catch (e) { document.getElementById('status').innerText = "Lỗi quét file!"; }
     }
 
     function renderInputs(tags) {
         const container = document.getElementById('inputs');
         container.innerHTML = "";
-        
-        tags.date.forEach(t => container.innerHTML += makeInput(t, 'date', '📅 NGÀY'));
-        tags.text.forEach(t => container.innerHTML += makeInput(t, 'text', '✍️ CHỮ NGẮN'));
+        tags.date.forEach(t => container.innerHTML += makeField(t, 'date', '📅 NGÀY'));
+        tags.text.forEach(t => container.innerHTML += makeField(t, 'text', '✍️ CHỮ'));
         tags.note.forEach(t => {
-            container.innerHTML += `
-                <div class="field-box">
-                    <label>${t.substring(2)} (📝 VĂN BẢN DÀI)</label>
-                    <textarea class="input-control t-val" data-tag="${t}" oninput="update()"></textarea>
-                </div>`;
+            container.innerHTML += `<div class="field-box"><label>${t.substring(2)} (📝 VĂN BẢN DÀI)</label>
+            <textarea class="input-control t-val" data-tag="${t}" oninput="update()"></textarea></div>`;
         });
-
         document.getElementById('workZone').style.display = "grid";
         document.getElementById('zipBtn').style.display = "block";
         update();
     }
 
-    function makeInput(tag, type, hint) {
+    function makeField(tag, type, hint) {
         let label = tag.startsWith('d%') ? tag.substring(2) : tag;
         let val = type === 'date' ? new Date().toISOString().split('T')[0] : "";
-        return `<div class="field-box">
-                    <label>${label} (${hint})</label>
-                    <input type="${type}" class="input-control t-val" data-tag="${tag}" value="${val}" oninput="update()">
-                </div>`;
+        return `<div class="field-box"><label>${label} (${hint})</label>
+        <input type="${type}" class="input-control t-val" data-tag="${tag}" value="${val}" oninput="update()"></div>`;
     }
 
     function update() {
@@ -177,9 +158,7 @@
             if (i.type === 'date' && i.value) {
                 const [y, m, d] = i.value.split('-');
                 data[tag] = `${d}/${m}/${y}`;
-            } else {
-                data[tag] = i.value;
-            }
+            } else { data[tag] = i.value; }
         });
         document.getElementById('jsonOut').innerText = JSON.stringify(data, null, 4);
     }
@@ -188,7 +167,6 @@
         const zipOut = new JSZip();
         const data = JSON.parse(document.getElementById('jsonOut').innerText);
         const checked = document.querySelectorAll('.tpl-check:checked');
-
         try {
             document.getElementById('status').innerText = "⏳ Đang đóng gói...";
             for (let c of checked) {
@@ -199,9 +177,9 @@
                 doc.render(data);
                 zipOut.file(`${c.dataset.name}.docx`, doc.getZip().generate({type:"blob"}));
             }
-            saveAs(await zipOut.generateAsync({type:"blob"}), `HoSo_Final.zip`);
-            document.getElementById('status').innerText = "🚀 Xong rồi bồ ơi!";
-        } catch (e) { alert("Lỗi xuất file: " + e.message); }
+            saveAs(await zipOut.generateAsync({type:"blob"}), `Bo_Ho_So.zip`);
+            document.getElementById('status').innerText = "🚀 Xong!";
+        } catch (e) { alert("Lỗi!"); }
     }
 </script>
 </body>
