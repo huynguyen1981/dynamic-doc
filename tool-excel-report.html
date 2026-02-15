@@ -2,26 +2,27 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Excel to Word Report - Fast Load</title>
+    <link rel="icon" href="data:,"> 
+    <title>Excel to Word - Fast Load</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.42.0/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/docxtemplater-image-module-free@1.1.1/build/bundle.js"></script>
+    <script src="https://unpkg.com/docxtemplater-image-module-free@1.1.1/build/bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
         :root { --p: #2563eb; --bg: #f8fafc; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .box { width: 100%; max-width: 500px; background: white; padding: 40px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.05); }
-        h2 { text-align: center; color: #1e293b; margin-bottom: 30px; }
+        .box { width: 100%; max-width: 500px; background: white; padding: 40px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        h2 { text-align: center; color: #1e293b; margin-top: 0; }
         .input-group { margin-bottom: 20px; }
-        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; color: #64748b; }
-        input[type="file"] { width: 100%; padding: 10px; border: 2px dashed #e2e8f0; border-radius: 12px; cursor: pointer; }
-        .btn { width: 100%; padding: 15px; background: #cbd5e1; color: white; border: none; border-radius: 12px; font-weight: 700; cursor: not-allowed; transition: 0.3s; }
-        #status { margin-top: 20px; text-align: center; font-size: 0.85rem; font-weight: 600; }
-        .loading { color: #f59e0b; }
-        .ready { color: #10b981; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; color: #64748b; }
+        input[type="file"] { width: 100%; padding: 10px; border: 2px dashed #cbd5e1; border-radius: 12px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 16px; background: #94a3b8; color: white; border: none; border-radius: 12px; font-weight: 700; cursor: not-allowed; transition: 0.3s; margin-top: 10px; }
+        #status { margin-top: 20px; text-align: center; font-size: 0.85rem; font-weight: 600; padding: 10px; border-radius: 8px; }
+        .loading { background: #fff7ed; color: #c2410c; }
+        .ready { background: #f0fdf4; color: #15803d; }
     </style>
 </head>
 <body>
@@ -30,22 +31,22 @@
     <h2>📊 Excel to Word</h2>
     
     <div class="input-group">
-        <label>1. File Word mẫu</label>
+        <label>1. File Word mẫu (.docx)</label>
         <input type="file" id="tpl" accept=".docx">
     </div>
 
     <div class="input-group">
-        <label>2. File Excel dữ liệu</label>
+        <label>2. File Excel dữ liệu (.xlsx)</label>
         <input type="file" id="data" accept=".xlsx">
     </div>
 
     <div class="input-group">
-        <label>3. Chọn tất cả ảnh</label>
+        <label>3. Chọn tất cả ảnh khảo sát</label>
         <input type="file" id="imgs" multiple accept="image/*">
     </div>
 
-    <button class="btn" id="mainBtn" onclick="generate()">ĐANG TẢI THƯ VIỆN...</button>
-    <div id="status" class="loading">Đang kết nối máy chủ thư viện...</div>
+    <button class="btn" id="mainBtn" onclick="generate()" disabled>ĐANG TẢI THƯ VIỆN...</button>
+    <div id="status" class="loading">⏳ Đang nạp thư viện hệ thống...</div>
 </div>
 
 <script>
@@ -53,23 +54,36 @@
     const btn = document.getElementById('mainBtn');
     const status = document.getElementById('status');
 
-    // Kiểm tra thư viện với tốc độ cao (100ms)
+    // Kiểm tra xem ImageModule có được nạp dưới tên khác không (phòng hờ lỗi constructor)
+    function getImageModule() {
+        return window.DocxtemplaterImageModuleV2 || window.ImageModule;
+    }
+
     const checkTimer = setInterval(() => {
-        // Kiểm tra tất cả các biến toàn cục cần thiết
-        const isReady = window.PizZip && window.docxtemplater && window.XLSX && window.DocxtemplaterImageModuleV2;
-        
-        if (isReady) {
+        const libs = {
+            "PizZip": !!window.PizZip,
+            "Docxtemplater": !!window.docxtemplater,
+            "XLSX": !!window.XLSX,
+            "ImageModule": !!getImageModule()
+        };
+
+        const missing = Object.keys(libs).filter(k => !libs[k]);
+
+        if (missing.length === 0) {
             clearInterval(checkTimer);
             btn.disabled = false;
             btn.style.background = "var(--p)";
             btn.style.cursor = "pointer";
             btn.innerText = "🚀 TẠO BÁO CÁO NGAY";
-            status.innerText = "✅ Hệ thống đã sẵn sàng!";
+            status.innerText = "✅ Hệ thống sẵn sàng!";
             status.className = "ready";
+        } else {
+            status.innerText = `⏳ Đang đợi nạp: ${missing.join(', ')}...`;
         }
-    }, 100);
+    }, 500);
 
     document.getElementById('imgs').onchange = function(e) {
+        photoLibrary = {};
         Array.from(e.target.files).forEach(file => {
             const reader = new FileReader();
             reader.onload = (ev) => { photoLibrary[file.name] = ev.target.result; };
@@ -80,30 +94,39 @@
     async function generate() {
         const tplFile = document.getElementById('tpl').files[0];
         const dataFile = document.getElementById('data').files[0];
-        if(!tplFile || !dataFile) return alert("Chọn file đi bồ!");
+        const ImageModuleClass = getImageModule();
+
+        if(!tplFile || !dataFile) return alert("Bồ chọn đủ file Word và Excel đã nhé!");
 
         try {
-            status.innerText = "⏳ Đang xử lý... (Vui lòng không đóng trang)";
+            status.innerText = "⏳ Đang tạo file Word, bồ đừng đóng trang nhé...";
             
             const exBuf = await dataFile.arrayBuffer();
-            const rows = XLSX.utils.sheet_to_json(XLSX.read(exBuf).Sheets[XLSX.read(exBuf).SheetNames[0]]);
+            const workbook = XLSX.read(exBuf);
+            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
             const imgOptions = {
                 getImage: (name) => photoLibrary[name],
-                getSize: () => [450, 300]
+                getSize: (img, tagValue, tagName) => [500, 350] // Kích thước ảnh trong Word
             };
             
-            // Dùng trực tiếp đối tượng từ window để tránh lỗi constructor
-            const imgMod = new window.DocxtemplaterImageModuleV2(imgOptions);
+            const imgMod = new ImageModuleClass(imgOptions);
             const zip = new PizZip(await tplFile.arrayBuffer());
-            const doc = new window.docxtemplater(zip, { modules: [imgMod], paragraphLoop: true, linebreaks: true });
+            const doc = new window.docxtemplater(zip, { 
+                modules: [imgMod], 
+                paragraphLoop: true, 
+                linebreaks: true 
+            });
 
             doc.render({ rows: rows });
-            saveAs(doc.getZip().generate({type:"blob"}), "Bao_Cao_Tong_Hop.docx");
-            status.innerText = "✅ Hoàn thành!";
+            const out = doc.getZip().generate({ type: "blob" });
+            saveAs(out, "Bao_Cao_Tong_Hop.docx");
+            
+            status.innerText = "✅ Hoàn thành! File đã tải xuống.";
         } catch (e) {
+            console.error(e);
             alert("Lỗi: " + e.message);
-            status.innerText = "❌ Gặp lỗi khi xử lý.";
+            status.innerText = "❌ Lỗi xử lý dữ liệu.";
         }
     }
 </script>
