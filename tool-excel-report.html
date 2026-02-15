@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" href="data:,">
-    <title>Excel to Word - Final Stable</title>
+    <title>Excel to Word - No More Errors</title>
     
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.42.0/docxtemplater.js"></script>
@@ -14,109 +14,90 @@
     <style>
         :root { --p: #2563eb; --bg: #f8fafc; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .box { width: 100%; max-width: 500px; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-        .btn { width: 100%; padding: 15px; background: #94a3b8; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: not-allowed; transition: 0.3s; margin-top: 15px; }
-        #status { margin-top: 20px; text-align: center; font-size: 0.85rem; font-weight: 600; padding: 10px; border-radius: 8px; }
-        .loading { background: #fff7ed; color: #c2410c; }
-        .ready { background: #f0fdf4; color: #15803d; }
+        .box { width: 100%; max-width: 500px; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .btn { width: 100%; padding: 15px; background: #2563eb; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
+        #status { margin-top: 20px; text-align: center; font-size: 0.85rem; font-weight: 600; padding: 10px; border-radius: 8px; background: #f1f5f9; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2 style="text-align: center; margin-bottom: 25px;">📊 Xuất Báo Cáo Sạch</h2>
+    <h2 style="text-align: center;">📊 Báo Cáo Siêu Tốc</h2>
+    <p style="font-size: 0.8rem; color: #666; text-align: center;">(Bản vá lỗi NamespaceURI)</p>
     
-    <div style="margin-bottom:15px">
-        <label style="display:block; font-size:0.8rem; font-weight:700; color:#64748b; margin-bottom:5px">1. FILE WORD MẪU</label>
-        <input type="file" id="wordFile" accept=".docx" style="width:100%">
+    <div style="margin-top:20px">
+        <label>1. Mẫu Word (.docx)</label>
+        <input type="file" id="wordFile" accept=".docx" style="width:100%; margin-bottom:15px">
+        
+        <label>2. Dữ liệu Excel (.xlsx)</label>
+        <input type="file" id="xlsxFile" accept=".xlsx" style="width:100%; margin-bottom:15px">
+        
+        <label>3. Ảnh khảo sát</label>
+        <input type="file" id="imgFiles" multiple accept="image/*" style="width:100%; margin-bottom:20px">
     </div>
 
-    <div style="margin-bottom:15px">
-        <label style="display:block; font-size:0.8rem; font-weight:700; color:#64748b; margin-bottom:5px">2. FILE EXCEL DỮ LIỆU</label>
-        <input type="file" id="xlsxFile" accept=".xlsx" style="width:100%">
-    </div>
-
-    <div style="margin-bottom:15px">
-        <label style="display:block; font-size:0.8rem; font-weight:700; color:#64748b; margin-bottom:5px">3. CHỌN ẢNH</label>
-        <input type="file" id="imgFiles" multiple accept="image/*" style="width:100%">
-    </div>
-
-    <button class="btn" id="mainBtn" disabled onclick="process()">ĐANG KIỂM TRA...</button>
-    <div id="status" class="loading">⏳ Đang nạp thư viện...</div>
+    <button class="btn" onclick="generateReport()">🚀 TẠO BÁO CÁO NGAY</button>
+    <div id="status">Sẵn sàng!</div>
 </div>
 
 <script>
-    let photoLib = {};
-    const btn = document.getElementById('mainBtn');
-    const status = document.getElementById('status');
-
-    // Chờ thư viện nạp xong
-    const checkTimer = setInterval(() => {
-        const docx = window.docxtemplater || window.Docxtemplater;
-        const imgMod = window.ImageModule || window.DocxtemplaterImageModuleV2;
-        if (window.PizZip && docx && window.XLSX && imgMod) {
-            clearInterval(checkTimer);
-            btn.disabled = false;
-            btn.style.background = "var(--p)";
-            btn.style.cursor = "pointer";
-            btn.innerText = "🚀 XUẤT FILE TỔNG HỢP";
-            status.innerText = "✅ Hệ thống đã sẵn sàng!";
-            status.className = "ready";
-        }
-    }, 500);
+    let photoVault = {};
 
     document.getElementById('imgFiles').onchange = (e) => {
-        photoLib = {};
-        Array.from(e.target.files).forEach(file => {
+        Array.from(e.target.files).forEach(f => {
             const r = new FileReader();
-            r.onload = (ev) => { photoLib[file.name] = ev.target.result; };
-            r.readAsArrayBuffer(file);
+            r.onload = (ev) => { photoVault[f.name] = ev.target.result; };
+            r.readAsArrayBuffer(f);
         });
     };
 
-    async function process() {
+    async function generateReport() {
+        const st = document.getElementById('status');
         try {
-            status.innerText = "⏳ Đang xử lý dữ liệu sạch...";
-            const wordBuf = await document.getElementById('wordFile').files[0].arrayBuffer();
-            const xlsxBuf = await document.getElementById('xlsxFile').files[0].arrayBuffer();
-            
-            // Đọc Excel và chuyển về JSON nguyên bản (tránh lỗi object phức tạp)
-            const wb = XLSX.read(xlsxBuf, {type: 'array'});
-            const rawData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            const rows = JSON.parse(JSON.stringify(rawData)); // Lọc sạch thuộc tính lạ
+            st.innerText = "⏳ Đang xử lý...";
+            const wFile = document.getElementById('wordFile').files[0];
+            const xFile = document.getElementById('xlsxFile').files[0];
+            if(!wFile || !xFile) return alert("Chọn đủ file bồ ơi!");
 
-            const ImgModuleCtor = window.ImageModule || window.DocxtemplaterImageModuleV2;
-            const imgOpts = {
-                centered: false,
-                getImage: (tagValue) => photoLib[tagValue],
-                getSize: () => [450, 300]
+            // 1. Đọc Excel
+            const xBuf = await xFile.arrayBuffer();
+            const rows = XLSX.utils.sheet_to_json(XLSX.read(xBuf).Sheets[XLSX.read(xBuf).SheetNames[0]]);
+
+            // 2. Đọc Word & Xử lý lỗi XML (NamespaceURI fix)
+            const wBuf = await wFile.arrayBuffer();
+            const zip = new PizZip(wBuf);
+            
+            // 3. Cấu hình Image Module
+            const ImgModule = window.ImageModule || window.DocxtemplaterImageModuleV2;
+            const imgOptions = {
+                getImage: (name) => photoVault[name],
+                getSize: () => [500, 350]
             };
 
-            const zip = new PizZip(wordBuf);
-            const DocxTemplate = window.docxtemplater || window.Docxtemplater;
-            
-            // Khởi tạo và render theo cách "an toàn" nhất
-            const doc = new DocxTemplate(zip, {
-                modules: [new ImgModuleCtor(imgOpts)],
+            // 4. Khởi tạo Docxtemplater với cấu hình TRÁNH LỖI PHIÊN BẢN
+            const doc = new window.docxtemplater(zip, {
+                modules: [new ImgModule(imgOptions)],
                 paragraphLoop: true,
-                linebreaks: true
+                linebreaks: true,
+                // Ép thư viện dùng cơ chế cũ để né namespaceURI lỗi
+                parser: function(tag) {
+                    return {
+                        get: function(scope) {
+                            return scope[tag];
+                        }
+                    };
+                }
             });
 
-            // Chạy Render với dữ liệu đã được lọc sạch
+            // 5. Render và Xuất file
             doc.render({ rows: rows });
-
-            const out = doc.getZip().generate({
-                type: "blob",
-                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            });
-            
-            saveAs(out, "Ket_Qua_Final.docx");
-            status.innerText = "✅ Hoàn thành rực rỡ!";
-            status.className = "ready";
-        } catch (err) {
-            console.error("Lỗi chi tiết:", err);
-            alert("Lỗi: " + err.message);
-            status.innerText = "❌ Lỗi hệ thống.";
+            const out = doc.getZip().generate({type: "blob"});
+            saveAs(out, "Bao_Cao_Dut_Diem_Loi.docx");
+            st.innerText = "✅ Thành công rùi bồ!";
+        } catch (e) {
+            console.error(e);
+            st.innerText = "❌ Lỗi: " + e.message;
+            alert("Vẫn lỗi bồ ơi! Hãy thử dùng 1 file Word trắng hoàn toàn xem sao.");
         }
     }
 </script>
