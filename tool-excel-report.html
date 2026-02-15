@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" href="data:,">
-    <title>Excel to Word - Stable Version</title>
+    <title>Excel to Word - Final Stable</title>
     
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.42.0/docxtemplater.js"></script>
@@ -24,10 +24,10 @@
 <body>
 
 <div class="box">
-    <h2 style="text-align: center; margin-bottom: 25px;">📊 Báo Cáo Khảo Sát Tự Động</h2>
+    <h2 style="text-align: center; margin-bottom: 25px;">📊 Xuất Báo Cáo Sạch</h2>
     
     <div style="margin-bottom:15px">
-        <label style="display:block; font-size:0.8rem; font-weight:700; color:#64748b; margin-bottom:5px">1. FILE MẪU WORD</label>
+        <label style="display:block; font-size:0.8rem; font-weight:700; color:#64748b; margin-bottom:5px">1. FILE WORD MẪU</label>
         <input type="file" id="wordFile" accept=".docx" style="width:100%">
     </div>
 
@@ -37,12 +37,12 @@
     </div>
 
     <div style="margin-bottom:15px">
-        <label style="display:block; font-size:0.8rem; font-weight:700; color:#64748b; margin-bottom:5px">3. CHỌN TẤT CẢ ẢNH</label>
+        <label style="display:block; font-size:0.8rem; font-weight:700; color:#64748b; margin-bottom:5px">3. CHỌN ẢNH</label>
         <input type="file" id="imgFiles" multiple accept="image/*" style="width:100%">
     </div>
 
-    <button class="btn" id="mainBtn" disabled onclick="process()">ĐANG KIỂM TRA THƯ VIỆN...</button>
-    <div id="status" class="loading">⏳ Chờ nạp tài nguyên...</div>
+    <button class="btn" id="mainBtn" disabled onclick="process()">ĐANG KIỂM TRA...</button>
+    <div id="status" class="loading">⏳ Đang nạp thư viện...</div>
 </div>
 
 <script>
@@ -50,18 +50,17 @@
     const btn = document.getElementById('mainBtn');
     const status = document.getElementById('status');
 
-    // Kiểm tra xem ImageModule nạp vào biến nào
+    // Chờ thư viện nạp xong
     const checkTimer = setInterval(() => {
-        const isDocxReady = window.docxtemplater || window.Docxtemplater;
-        const isImgReady = window.ImageModule || window.DocxtemplaterImageModuleV2;
-
-        if (window.PizZip && isDocxReady && window.XLSX && isImgReady) {
+        const docx = window.docxtemplater || window.Docxtemplater;
+        const imgMod = window.ImageModule || window.DocxtemplaterImageModuleV2;
+        if (window.PizZip && docx && window.XLSX && imgMod) {
             clearInterval(checkTimer);
             btn.disabled = false;
             btn.style.background = "var(--p)";
             btn.style.cursor = "pointer";
             btn.innerText = "🚀 XUẤT FILE TỔNG HỢP";
-            status.innerText = "✅ Thư viện bồ chọn đã SẴN SÀNG!";
+            status.innerText = "✅ Hệ thống đã sẵn sàng!";
             status.className = "ready";
         }
     }, 500);
@@ -76,40 +75,47 @@
     };
 
     async function process() {
-        const wordFile = document.getElementById('wordFile').files[0];
-        const xlsxFile = document.getElementById('xlsxFile').files[0];
-
-        if(!wordFile || !xlsxFile) return alert("Bồ chọn thiếu file rồi!");
-
         try {
-            status.innerText = "⏳ Đang xử lý dữ liệu...";
-            const wordBuf = await wordFile.arrayBuffer();
-            const xlsxBuf = await xlsxFile.arrayBuffer();
+            status.innerText = "⏳ Đang xử lý dữ liệu sạch...";
+            const wordBuf = await document.getElementById('wordFile').files[0].arrayBuffer();
+            const xlsxBuf = await document.getElementById('xlsxFile').files[0].arrayBuffer();
             
-            const workbook = XLSX.read(xlsxBuf, {type: 'array'});
-            const data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+            // Đọc Excel và chuyển về JSON nguyên bản (tránh lỗi object phức tạp)
+            const wb = XLSX.read(xlsxBuf, {type: 'array'});
+            const rawData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+            const rows = JSON.parse(JSON.stringify(rawData)); // Lọc sạch thuộc tính lạ
 
             const ImgModuleCtor = window.ImageModule || window.DocxtemplaterImageModuleV2;
             const imgOpts = {
+                centered: false,
                 getImage: (tagValue) => photoLib[tagValue],
-                getSize: () => [450, 300] // Kích thước ảnh mặc định
+                getSize: () => [450, 300]
             };
 
             const zip = new PizZip(wordBuf);
             const DocxTemplate = window.docxtemplater || window.Docxtemplater;
+            
+            // Khởi tạo và render theo cách "an toàn" nhất
             const doc = new DocxTemplate(zip, {
                 modules: [new ImgModuleCtor(imgOpts)],
                 paragraphLoop: true,
                 linebreaks: true
             });
 
-            doc.render({ rows: data });
+            // Chạy Render với dữ liệu đã được lọc sạch
+            doc.render({ rows: rows });
+
+            const out = doc.getZip().generate({
+                type: "blob",
+                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            });
             
-            saveAs(doc.getZip().generate({type: "blob"}), "Ket_Qua_Bao_Cao.docx");
-            status.innerText = "✅ Xuất báo cáo thành công!";
+            saveAs(out, "Ket_Qua_Final.docx");
+            status.innerText = "✅ Hoàn thành rực rỡ!";
+            status.className = "ready";
         } catch (err) {
-            console.error(err);
-            alert("Lỗi render: " + err.message);
+            console.error("Lỗi chi tiết:", err);
+            alert("Lỗi: " + err.message);
             status.innerText = "❌ Lỗi hệ thống.";
         }
     }
