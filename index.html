@@ -2,10 +2,12 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Dynamic Doc - GitHub Pages Version</title>
-    <script src="config.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Doc - Bản Hoàn Thiện</title>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="config.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.42.0/build/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
@@ -13,115 +15,140 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
-        .card { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .field-group { margin-bottom: 12px; display: flex; align-items: center; background: #f8f9fa; padding: 10px; border-radius: 8px; border-left: 5px solid #007bff; }
-        .tag-name { width: 140px; font-weight: bold; color: #555; }
-        input, select { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
-        button { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 20px; }
-        #status { text-align: center; color: #007bff; font-weight: bold; margin: 10px 0; font-size: 0.9rem; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; padding: 20px; color: #333; }
+        .container { max-width: 650px; margin: 40px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #007bff; margin-bottom: 25px; }
+        label { font-weight: 600; display: block; margin-bottom: 8px; font-size: 0.9rem; }
+        select { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
+        #status { text-align: center; font-weight: bold; margin-bottom: 15px; color: #28a745; min-height: 1.2em; }
+        .field-box { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #007bff; display: flex; align-items: center; }
+        .field-label { width: 150px; font-weight: bold; color: #555; text-transform: uppercase; font-size: 0.8rem; }
+        .field-input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
+        .btn-submit { background: #007bff; color: white; border: none; padding: 16px; width: 100%; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.3s; margin-top: 20px; }
+        .btn-submit:hover { background: #0056b3; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2 style="text-align:center">📝 Trình Tạo Văn Bản Tự Động</h2>
-    <label>1. Chọn mẫu biểu mẫu:</label>
-    <select id="templateSelect" onchange="autoScanTags()"></select>
+<div class="container">
+    <h2>🚀 Trình Tạo Văn Bản Tự Động</h2>
     
+    <label>1. Chọn mẫu từ danh sách (Firestore):</label>
+    <select id="templateSelect" onchange="autoScanTags()">
+        <option value="">-- Đang tải danh sách mẫu... --</option>
+    </select>
+
     <div id="status"></div>
 
-    <div id="fieldsContainer" style="margin-top:20px">
-        <p style="text-align:center; color:#999;">(Tag sẽ tự động hiện ra sau khi chọn mẫu)</p>
+    <label>2. Nhập thông tin chi tiết:</label>
+    <div id="fieldsContainer">
+        <p style="text-align: center; color: #999; font-style: italic;">Chọn một mẫu để hiển thị các trường dữ liệu.</p>
     </div>
-    
-    <button onclick="generateAndDownload()">XUẤT FILE WORD (.DOCX)</button>
+
+    <button class="btn-submit" onclick="generateAndDownload()">XUẤT FILE WORD (.DOCX)</button>
 </div>
 
 <script>
-    // 1. Khởi tạo Firebase từ file config.js của bồ
-    if (window.firebaseConfig) firebase.initializeApp(window.firebaseConfig);
+    // --- KHỞI TẠO FIREBASE ---
+    if (window.firebaseConfig) {
+        firebase.initializeApp(window.firebaseConfig);
+    }
     const db = firebase.firestore();
 
-    // 2. Load danh sách mẫu từ Firestore
-    db.collection("templates").onSnapshot(snapshot => {
+    // 1. Tải danh sách mẫu từ Firestore
+    db.collection("templates").onSnapshot((snapshot) => {
         const select = document.getElementById('templateSelect');
-        select.innerHTML = '<option value="">-- Chọn mẫu văn bản --</option>';
-        snapshot.forEach(doc => {
+        select.innerHTML = '<option value="">-- Chọn một mẫu văn bản --</option>';
+        snapshot.forEach((doc) => {
             const data = doc.data();
-            select.add(new Option(data.name, data.url)); // data.url bây giờ là "templates/mau_test.docx"
+            select.add(new Option(data.name, data.url)); // Link tương đối: templates/tenfile.docx
         });
-    });
+    }, (err) => console.error("Lỗi Firestore:", err));
 
-    // 3. Tự động quét tag từ file
+    // 2. Tự động quét tag { } từ file Word
     async function autoScanTags() {
         const url = document.getElementById('templateSelect').value;
         const container = document.getElementById('fieldsContainer');
         const status = document.getElementById('status');
-        if(!url) return;
+        if (!url) {
+            container.innerHTML = '<p style="text-align: center; color: #999;">Chọn một mẫu để hiển thị các trường dữ liệu.</p>';
+            status.innerText = "";
+            return;
+        }
 
-        status.innerText = "⏳ Đang quét file mẫu...";
-        container.innerHTML = "";
-
+        status.innerText = "⏳ Đang quét dữ liệu từ file mẫu...";
+        
         try {
-            // Fetch trực tiếp (không cần proxy) vì cùng host GitHub Pages
             const response = await fetch(url);
-            if (!response.ok) throw new Error("Không tìm thấy file tại " + url);
+            if (!response.ok) throw new Error("Không thể tải file mẫu. Kiểm tra lại đường dẫn!");
+            
             const arrayBuffer = await response.arrayBuffer();
+            const zip = new PizZip(arrayBuffer);
+            const docXml = zip.files["word/document.xml"].asText();
             
-            // Dùng JSZip xử lý nội dung Word
-            const zip = await JSZip.loadAsync(arrayBuffer);
-            const docXml = await zip.file("word/document.xml").async("string");
-            
-            // Regex hốt tag trong ngoặc { }
+            // Regex tìm tag {TEN_TAG}
             const regex = /\{([^{}]+)\}/g;
             const tags = new Set();
             let match;
             while ((match = regex.exec(docXml)) !== null) {
                 const cleanTag = match[1].replace(/<[^>]+>/g, "").trim();
-                if(cleanTag) tags.add(cleanTag);
+                if (cleanTag) tags.add(cleanTag);
             }
 
-            status.innerText = `✅ Đã tìm thấy ${tags.size} trường dữ liệu!`;
-            tags.forEach(tag => {
-                container.innerHTML += `
-                    <div class="field-group">
-                        <span class="tag-name">${tag}:</span>
+            container.innerHTML = "";
+            if (tags.size === 0) {
+                status.innerHTML = "<span style='color:red'>❌ Không tìm thấy tag { } nào!</span>";
+            } else {
+                status.innerText = `✅ Đã tìm thấy ${tags.size} trường dữ liệu!`;
+                tags.forEach(tag => {
+                    const div = document.createElement('div');
+                    div.className = 'field-box';
+                    div.innerHTML = `
+                        <div class="field-label">${tag}:</div>
                         <input type="hidden" class="tag-key" value="${tag}">
-                        <input type="text" class="tag-val" placeholder="Nhập nội dung cho ${tag}...">
-                    </div>`;
-            });
-        } catch (e) {
-            status.innerHTML = `<span style="color:red">Lỗi: ${e.message}</span>`;
+                        <input type="text" class="field-input tag-value" placeholder="Nhập nội dung cho ${tag}...">
+                    `;
+                    container.appendChild(div);
+                });
+            }
+        } catch (err) {
+            status.innerHTML = `<span style='color:red'>Lỗi: ${err.message}</span>`;
+            console.error(err);
         }
     }
 
-    // 4. Điền dữ liệu và Xuất file
+    // 3. Điền dữ liệu và Xuất file Word
     async function generateAndDownload() {
         const url = document.getElementById('templateSelect').value;
-        if(!url) return alert("Bồ chưa chọn mẫu!");
+        if (!url) return alert("Bồ ơi, chọn mẫu trước đã!");
 
         const data = {};
         const keys = document.querySelectorAll('.tag-key');
-        const vals = document.querySelectorAll('.tag-val');
-        keys.forEach((k, i) => data[k.value] = vals[i].value || "...");
+        const values = document.querySelectorAll('.tag-value');
+        keys.forEach((key, index) => {
+            data[key.value] = values[index].value || "...";
+        });
 
         try {
             const response = await fetch(url);
             const arrayBuffer = await response.arrayBuffer();
-            const zip = await JSZip.loadAsync(arrayBuffer);
+            const zip = new PizZip(arrayBuffer);
             
-            const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
-            doc.render(data); // Đổ dữ liệu vào tag
+            const doc = new window.docxtemplater(zip, { 
+                paragraphLoop: true, 
+                linebreaks: true 
+            });
 
-            const out = doc.getZip().generate({ 
-                type: "blob", 
-                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
-            }); //
+            doc.render(data);
+
+            const out = doc.getZip().generate({
+                type: "blob",
+                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            });
 
             saveAs(out, "Van_Ban_Hoan_Thien.docx");
-        } catch (e) {
-            alert("Lỗi xuất file: " + e.message);
+        } catch (err) {
+            alert("Lỗi xuất file: " + err.message);
         }
     }
 </script>
