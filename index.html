@@ -153,54 +153,74 @@
     }
 
     async function generateZip() {
-        if (!checkSafety()) return;
-        
-        // --- ĐOẠN FIX QUAN TRỌNG ---
+        // 1. Kiểm tra bảo hiểm thư viện
+        if (typeof PizZip === 'undefined') {
+            alert("PizZip library missing! Please refresh.");
+            return;
+        }
+    
+        // 2. Xác định đúng tên thư viện Image Module (Bản Free thường dùng tên này)
         const ImageModule = window.DocxtemplaterImageModuleV2 || window.ImageModule;
+        
         if (!ImageModule) {
             alert("Image library not loaded yet. Please wait 3s and try again!");
             return;
         }
     
         const checked = document.querySelectorAll('.tpl-check:checked');
+        if (checked.length === 0) return alert("Please select templates!");
+    
         const zipOutput = new JSZip();
         const data = JSON.parse(document.getElementById('previewData').innerText);
     
+        // 3. Cấu hình Module ảnh
         const imgOpts = {
-            getImage: function(tagValue) { return dynamicImages[tagValue]; },
+            getImage: function(tagValue) { 
+                return dynamicImages[tagValue]; 
+            },
             getSize: function(img, tagValue) {
-                if(tagValue.toLowerCase().includes('logo')) return [100, 100];
-                return [150, 60]; 
+                // Tự động chỉnh size dựa trên tên tag
+                if(tagValue.toLowerCase().includes('logo')) return [120, 120]; // Logo vuông
+                return [150, 60]; // Chữ ký nằm ngang
             }
         };
-        
-        const imgModule = new ImageModule(imgOpts); // Đã fix constructor
     
-        document.getElementById('status').innerText = "⏳ Processing...";
+        document.getElementById('status').innerText = "⏳ Generating ZIP bundle...";
+    
         try {
+            const imgModule = new ImageModule(imgOpts); // Fix lỗi Constructor ở đây
+    
             for (let input of checked) {
                 const res = await fetch(input.value);
-                if (!res.ok) throw new Error(`File not found: ${input.value}`); // Fix lỗi 404
+                if (!res.ok) throw new Error(`File not found: ${input.value}`);
                 
                 const pZip = new PizZip(await res.arrayBuffer());
+                
+                // Khởi tạo docxtemplater với module ảnh
                 const doc = new window.docxtemplater(pZip, { 
-                    modules: [imgModule], 
-                    paragraphLoop: true, 
+                    modules: [imgModule],
+                    paragraphLoop: true,
                     linebreaks: true 
                 });
+    
                 doc.render(data);
-                zipOutput.file(`${input.getAttribute('data-name')}.docx`, doc.getZip().generate({type:"blob"}));
+                
+                const out = doc.getZip().generate({ type: "blob" });
+                zipOutput.file(`${input.getAttribute('data-name')}.docx`, out);
             }
-            const finalZip = await zipOutput.generateAsync({type:"blob"});
-            saveAs(finalZip, `Universe_Bundle_${Date.now()}.zip`);
-            document.getElementById('status').innerText = "🚀 Success!";
-        } catch (e) { 
+    
+            const finalZip = await zipOutput.generateAsync({ type: "blob" });
+            saveAs(finalZip, `Global_Bundle_${Date.now()}.zip`);
+            document.getElementById('status').innerText = "🚀 Success! Bundle downloaded.";
+        } catch (e) {
             console.error(e);
-            alert("Error: " + e.message); 
+            alert("Lỗi rồi bồ ơi: " + e.message);
+            document.getElementById('status').innerText = "❌ Error occurred.";
         }
     }
     window.onload = init;
 </script>
 </body>
 </html>
+
 
