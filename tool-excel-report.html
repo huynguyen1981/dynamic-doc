@@ -62,10 +62,28 @@
 
     // Kiểm tra thư viện "sống" chưa mới cho làm việc
     const checkTimer = setInterval(() => {
-        if (window.PizZip && window.docxtemplater && window.DocxtemplaterImageModuleV2) {
+        // Kiểm tra xem các đối tượng thư viện đã nằm trong cửa sổ trình duyệt chưa
+        const libs = {
+            "PizZip": !!window.PizZip,
+            "Docxtemplater": !!window.docxtemplater,
+            "ExcelJS": !!window.XLSX,
+            "ImageModule": !!window.DocxtemplaterImageModuleV2
+        };
+
+        const missing = Object.keys(libs).filter(k => !libs[k]);
+
+        if (missing.length === 0) {
             clearInterval(checkTimer);
             btn.disabled = false;
-            btn.innerText = "TẠO FILE WORD TỔNG HỢP";
+            btn.style.background = "var(--p)"; // Hiện màu xanh khi sẵn sàng
+            btn.innerText = "🚀 TẠO FILE WORD TỔNG HỢP";
+            status.style.display = "none";
+        } else {
+            // Hiển thị cho bồ biết chính xác thư viện nào đang bị kẹt
+            btn.innerText = `⏳ Đang đợi: ${missing.join(', ')}...`;
+            status.innerHTML = `⚠️ Đang tải dữ liệu từ máy chủ: <b>${missing[0]}</b>...`;
+            status.className = "loading";
+            status.style.display = "block";
         }
     }, 500);
 
