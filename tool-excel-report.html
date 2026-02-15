@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Báo Cáo Khảo Sát Tổng Hợp</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.4/dist/pizzip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.42.0/build/docxtemplater.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docxtemplater-image-module-free@1.1.1/build/bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; padding: 20px; background: #f4f4f9; }
+        .box { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .input-group { margin-bottom: 15px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
+        .btn { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #log { margin-top: 15px; font-size: 0.9em; color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>🚀 Báo Cáo Khảo Sát Tự Động</h2>
+    
+    <div class="input-group">
+        <label>1. Mẫu Word ({#rows}...{%ANH}...{/rows})</label><br>
+        <input type="file" id="tpl" accept=".docx">
+    </div>
+
+    <div class="input-group">
+        <label>2. File Excel dữ liệu</label><br>
+        <input type="file" id="data" accept=".xlsx">
+    </div>
+
+    <div class="input-group">
+        <label>3. Chọn tất cả ảnh khảo sát</label><br>
+        <input type="file" id="imgs" multiple accept="image/*">
+    </div>
+
+    <button class="btn" onclick="generate()">TẠO FILE WORD TỔNG HỢP</button>
+    <div id="log"></div>
+</div>
+
+<script>
+    let photoLibrary = {}; // Nơi lưu trữ ảnh tạm thời
+
+    // Đọc ảnh vào bộ nhớ khi người dùng chọn
+    document.getElementById('imgs').onchange = function(e) {
+        Array.from(e.target.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                photoLibrary[file.name] = event.target.result; // Lưu theo tên file
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    };
+
+    async function generate() {
+        const log = document.getElementById('log');
+        const tplFile = document.getElementById('tpl').files[0];
+        const dataFile = document.getElementById('data').files[0];
+
+        if(!tplFile || !dataFile) return alert("Thiếu file kìa bồ ơi!");
+
+        log.innerText = "⏳ Đang xử lý...";
+
+        try {
+            // 1. Đọc Excel
+            const exBuf = await dataFile.arrayBuffer();
+            const wb = XLSX.read(exBuf);
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+
+            // 2. Cấu hình Image Module
+            const imageOptions = {
+                getImage: (tagValue) => photoLibrary[tagValue], // Tìm ảnh theo tên file ghi trong Excel
+                getSize: () => [400, 250] // Kích thước ảnh trong Word
+            };
+            const imgMod = new window.DocxtemplaterImageModuleV2(imageOptions);
+
+            // 3. Đọc Word Template
+            const zip = new PizZip(await tplFile.arrayBuffer());
+            const doc = new docxtemplater(zip, { 
+                modules: [imgMod], 
+                paragraphLoop: true, 
+                linebreaks: true 
+            });
+
+            // 4. Render (Excel row lặp lại trong {rows})
+            doc.render({ rows: rows });
+
+            // 5. Xuất file
+            const out = doc.getZip().generate({type:"blob"});
+            saveAs(out, "Bao_Cao_Hoan_Thien.docx");
+            log.innerText = "✅ Thành công rực rỡ!";
+
+        } catch (e) {
+            log.innerText = "❌ Lỗi rồi: " + e.message;
+            console.error(e);
+        }
+    }
+</script>
+</body>
+</html>
