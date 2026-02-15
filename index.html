@@ -3,40 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Doc Generator Pro</title>
+    <title>Global Doc Generator Pro - Final Fix</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.4/dist/pizzip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.42.0/build/docxtemplater.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-    <script src="https://unpkg.com/docxtemplater-image-module-free@1.1.1/build/bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.42.0/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docxtemplater-image-module-free@1.1.1/build/bundle.js"></script>
 
     <style>
         :root { --p: #2563eb; --s: #059669; --bg: #f8fafc; --gray: #64748b; }
-        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: #1e293b; padding: 20px; margin: 0; }
-        .container { max-width: 950px; margin: 0 auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: #1e293b; padding: 20px; margin: 0; }
+        .container { max-width: 950px; margin: 0 auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
         .header { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; }
-        .header h1 { margin: 0; font-size: 1.7rem; color: var(--p); letter-spacing: -0.5px; }
-        .guide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
-        .guide-card { background: #eff6ff; padding: 15px; border-radius: 10px; border: 1px solid #dbeafe; font-size: 0.85rem; }
-        .guide-card code { display: block; color: var(--p); font-weight: 700; margin-bottom: 5px; font-size: 1rem; }
+        .header h1 { margin: 0; font-size: 1.7rem; color: var(--p); }
         .card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 30px; }
-        .card-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .card-title strong { font-size: 1.1rem; }
         .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .tpl-item { display: flex; align-items: center; padding: 12px 15px; border: 1px solid #f1f5f9; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-        .tpl-item:hover { background: #f8fafc; border-color: var(--p); }
-        .tpl-item input { margin-right: 12px; width: 18px; height: 18px; cursor: pointer; }
+        .tpl-item { display: flex; align-items: center; padding: 12px 15px; border: 1px solid #f1f5f9; border-radius: 8px; cursor: pointer; }
         .work-area { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; border-top: 2px solid #f1f5f9; padding-top: 30px; }
         .field-box { margin-bottom: 18px; }
-        .field-box label { display: block; font-weight: 600; font-size: 0.8rem; color: var(--gray); margin-bottom: 6px; text-transform: uppercase; }
-        .input-control { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; transition: 0.2s; box-sizing: border-box; }
-        .btn { padding: 14px 28px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.3s; width: 100%; font-size: 1rem; }
-        .btn-p { background: var(--p); color: white; margin-top: 10px; }
+        .field-box label { display: block; font-weight: 600; font-size: 0.8rem; color: var(--gray); margin-bottom: 6px; }
+        .input-control { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; }
+        .btn { padding: 14px 28px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; width: 100%; }
+        .btn-p { background: var(--p); color: white; }
         .btn-s { background: var(--s); color: white; margin-top: 20px; display: none; }
-        .preview-pane { background: #0f172a; border-radius: 12px; padding: 20px; color: #34d399; font-family: 'Fira Code', monospace; font-size: 0.8rem; overflow-x: auto; max-height: 400px; }
-        #status { text-align: center; margin: 20px 0; font-weight: 600; color: var(--p); min-height: 24px; }
-        .link-action { color: var(--p); background: none; border: none; text-decoration: underline; cursor: pointer; font-size: 0.85rem; padding: 0 5px; }
+        .preview-pane { background: #0f172a; border-radius: 12px; padding: 20px; color: #34d399; font-size: 0.8rem; overflow: auto; max-height: 400px; }
+        #status { text-align: center; margin: 20px 0; font-weight: 600; color: #dc2626; }
     </style>
 </head>
 <body>
@@ -44,47 +36,44 @@
 <div class="container">
     <div class="header">
         <div style="background: var(--p); color: white; padding: 10px; border-radius: 10px;">📄</div>
-        <div>
-            <h1>Global Doc Generator Pro</h1>
-            <small style="color: var(--gray)">Giải pháp tạo hồ sơ hàng loạt chính xác & chuyên nghiệp</small>
-        </div>
-    </div>
-
-    <div class="guide">
-        <div class="guide-card"><code>{TEN_KH}</code> Văn bản bình thường</div>
-        <div class="guide-card"><code>{d%NGAY_SINH}</code> Chọn ngày từ lịch</div>
-        <div class="guide-card"><code>{%CHU_KY}</code> Chèn hình ảnh (ảnh/ký)</div>
+        <h1>Global Doc Generator Pro</h1>
     </div>
 
     <div class="card">
-        <div class="card-title">
-            <strong>1. Chọn các mẫu cần xuất</strong>
-            <div>
-                <button class="link-action" onclick="selAll(true)">Chọn tất cả</button> | 
-                <button class="link-action" onclick="selAll(false)">Bỏ chọn</button>
-            </div>
-        </div>
-        <div id="tplList" class="tpl-grid">Đang tải danh sách mẫu...</div>
-        <button class="btn btn-p" onclick="analyze()">🔍 QUÉT DỮ LIỆU TỪ MẪU ĐÃ CHỌN</button>
+        <strong>1. Chọn mẫu văn bản</strong>
+        <div id="tplList" class="tpl-grid" style="margin-top:15px">Đang tải...</div>
+        <button id="scanBtn" class="btn btn-p" style="margin-top:20px" onclick="analyze()">🔍 QUÉT DỮ LIỆU MẪU</button>
     </div>
 
-    <div id="status">Hệ thống sẵn sàng.</div>
+    <div id="status">Đang khởi tạo hệ thống...</div>
 
     <div id="workZone" class="work-area" style="display: none;">
         <div>
-            <strong style="display: block; margin-bottom: 20px;">2. Nhập dữ liệu</strong>
-            <div id="inputs"></div>
+            <strong>2. Nhập thông tin</strong>
+            <div id="inputs" style="margin-top:20px"></div>
         </div>
         <div>
-            <strong style="display: block; margin-bottom: 20px;">3. Preview & Download</strong>
+            <strong>3. Kết quả</strong>
             <div class="preview-pane"><pre id="jsonOut">{}</pre></div>
-            <button class="btn btn-s" id="zipBtn" onclick="buildZip()">📦 TẢI BỘ HỒ SƠ (.ZIP)</button>
+            <button class="btn btn-s" id="zipBtn" onclick="buildZip()">📦 TẢI ZIP NGAY</button>
         </div>
     </div>
 </div>
 
 <script>
-    let imgData = {}; // Lưu trữ ArrayBuffer của ảnh
+    let rawImages = {}; // Lưu dữ liệu ảnh thô
+
+    // Tự động kiểm tra thư viện khi load trang
+    window.onload = async () => {
+        const check = setInterval(() => {
+            if (window.PizZip && window.docxtemplater && (window.ImageModule || window.DocxtemplaterImageModuleV2)) {
+                document.getElementById('status').innerText = "✅ Hệ thống đã sẵn sàng!";
+                document.getElementById('status').style.color = "var(--p)";
+                clearInterval(check);
+                init();
+            }
+        }, 500);
+    };
 
     async function init() {
         try {
@@ -93,127 +82,79 @@
             document.getElementById('tplList').innerHTML = data.map(t => `
                 <label class="tpl-item">
                     <input type="checkbox" class="tpl-check" value="${t.url}" data-name="${t.name}">
-                    <span>${t.name}</span>
+                    <span style="margin-left:10px">${t.name}</span>
                 </label>
             `).join('');
-        } catch (e) { document.getElementById('status').innerText = "Lỗi nạp file cấu hình!"; }
+        } catch (e) { alert("Không thấy file templates.json!"); }
     }
-
-    function selAll(s) { document.querySelectorAll('.tpl-check').forEach(c => c.checked = s); }
 
     async function analyze() {
         const checked = document.querySelectorAll('.tpl-check:checked');
-        if (checked.length === 0) return alert("Bồ chưa chọn mẫu nào kìa!");
-
-        document.getElementById('status').innerText = "⏳ Đang phân tích mẫu...";
+        if (!checked.length) return alert("Bồ chọn mẫu đã!");
+        
         const tags = { text: new Set(), date: new Set(), img: new Set() };
-
-        try {
-            for (let item of checked) {
-                const res = await fetch(item.value);
-                const zip = new PizZip(await res.arrayBuffer());
-                const content = zip.files["word/document.xml"].asText();
-                const matches = content.match(/\{([^{}]+)\}/g) || [];
-                
-                matches.forEach(m => {
-                    let t = m.replace(/<[^>]+>/g, "").replace(/[{}]/g, "").trim();
-                    if(t.startsWith('%')) tags.img.add(t.substring(1));
-                    else if(t.startsWith('d%')) tags.date.add(t);
-                    else tags.text.add(t);
-                });
-            }
-            renderInputs(tags);
-            document.getElementById('status').innerText = "✅ Đã nhận diện xong các trường dữ liệu!";
-        } catch (e) { document.getElementById('status').innerText = "Lỗi: " + e.message; }
+        for (let item of checked) {
+            const res = await fetch(item.value);
+            const zip = new PizZip(await res.arrayBuffer());
+            const doc = new docxtemplater(zip);
+            // Quét toàn bộ nội dung tìm tag
+            const text = zip.files["word/document.xml"].asText();
+            (text.match(/\{[^{}]+\}/g) || []).forEach(m => {
+                let t = m.replace(/[{}%]/g, "").trim();
+                if (m.includes('%')) tags.img.add(t);
+                else if (t.startsWith('d%')) tags.date.add(t);
+                else tags.text.add(t);
+            });
+        }
+        renderInputs(tags);
     }
 
     function renderInputs(tags) {
         const container = document.getElementById('inputs');
         container.innerHTML = "";
-        // Ưu tiên hiển thị upload ảnh lên đầu cho dễ thấy
-        tags.img.forEach(t => container.innerHTML += `
-            <div class="field-box">
-                <label>📷 UPLOAD: ${t}</label>
-                <input type="file" class="input-control" onchange="handleFile('${t}', this)">
-            </div>`);
-        tags.date.forEach(t => container.innerHTML += makeInput(t, 'date', '📅 NGÀY'));
-        tags.text.forEach(t => container.innerHTML += makeInput(t, 'text', '✍️ DỮ LIỆU'));
-
+        tags.img.forEach(t => container.innerHTML += `<div class="field-box"><label>📷 ẢNH: ${t}</label><input type="file" class="input-control" onchange="storeImg('${t}', this)"></div>`);
+        tags.date.forEach(t => container.innerHTML += `<div class="field-box"><label>📅 NGÀY: ${t.replace('d%','')}</label><input type="date" class="input-control t-val" data-tag="${t}" oninput="update()"></div>`);
+        tags.text.forEach(t => container.innerHTML += `<div class="field-box"><label>✍️ CHỮ: ${t}</label><input type="text" class="input-control t-val" data-tag="${t}" oninput="update()"></div>`);
+        
         document.getElementById('workZone').style.display = "grid";
         document.getElementById('zipBtn').style.display = "block";
-        updatePreview();
     }
 
-    function makeInput(tag, type, hint) {
-        let label = tag.startsWith('d%') ? tag.substring(2) : tag;
-        let val = type === 'date' ? new Date().toISOString().split('T')[0] : "";
-        return `<div class="field-box">
-                    <label>${label} (${hint})</label>
-                    <input type="${type}" class="input-control t-val" data-tag="${tag}" value="${val}" oninput="updatePreview()">
-                </div>`;
+    function storeImg(tag, input) {
+        const reader = new FileReader();
+        reader.onload = (e) => { rawImages[tag] = e.target.result; update(); };
+        reader.readAsArrayBuffer(input.files[0]);
     }
 
-    // Xử lý đọc file ảnh thành ArrayBuffer
-    function handleFile(tag, input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                imgData[tag] = e.target.result;
-                updatePreview();
-            };
-            reader.readAsArrayBuffer(input.files[0]);
-        }
-    }
-
-    function updatePreview() {
-        const data = { "_images_uploaded": Object.keys(imgData) };
-        document.querySelectorAll('.t-val').forEach(i => {
-            let tag = i.getAttribute('data-tag');
-            if (i.type === 'date') {
-                const [y, m, d] = i.value.split('-');
-                data[tag] = `${m}/${d}/${y}`;
-            } else {
-                data[tag] = i.value;
-            }
-        });
+    function update() {
+        const data = {};
+        document.querySelectorAll('.t-val').forEach(i => data[i.dataset.tag] = i.value);
         document.getElementById('jsonOut').innerText = JSON.stringify(data, null, 4);
     }
 
     async function buildZip() {
-        const checked = document.querySelectorAll('.tpl-check:checked');
-        const zipOut = new JSZip();
-        const data = JSON.parse(document.getElementById('jsonOut').innerText);
-
-        // Khởi tạo ImageModule với cơ chế bắt lỗi constructor
-        const ImageModule = window.ImageModule || window.DocxtemplaterImageModuleV2;
-        if (!ImageModule) return alert("Lỗi: Không tìm thấy thư viện xử lý ảnh!");
-
-        const imageOptions = new ImageModule({
+        const ImgMod = window.ImageModule || window.DocxtemplaterImageModuleV2;
+        const imgOpts = new ImgMod({
             centered: false,
-            getImage: (tag) => imgData[tag],
-            getSize: () => [150, 65] // Kích thước ảnh trong Word
+            getImage: (tag) => rawImages[tag.replace('%','')],
+            getSize: () => [150, 60] 
         });
 
+        const zipOut = new JSZip();
+        const data = JSON.parse(document.getElementById('jsonOut').innerText);
+        const checked = document.querySelectorAll('.tpl-check:checked');
+
         try {
-            document.getElementById('status').innerText = "⏳ Đang đóng gói ZIP...";
             for (let c of checked) {
                 const res = await fetch(c.value);
-                const doc = new window.docxtemplater(new PizZip(await res.arrayBuffer()), { 
-                    paragraphLoop: true, linebreaks: true,
-                    modules: [imageOptions] // Nạp module ảnh
-                });
+                const zip = new PizZip(await res.arrayBuffer());
+                const doc = new docxtemplater(zip, { modules: [imgOpts] });
                 doc.render(data);
-                zipOut.file(`${c.getAttribute('data-name')}.docx`, doc.getZip().generate({type:"blob"}));
+                zipOut.file(`${c.dataset.name}.docx`, doc.getZip().generate({type:"blob"}));
             }
-            const content = await zipOut.generateAsync({type:"blob"});
-            saveAs(content, `Bo_Ho_So_${Date.now()}.zip`);
-            document.getElementById('status').innerText = "🚀 Hoàn tất! Đã tải xuống bộ hồ sơ.";
-        } catch (e) { 
-            console.error(e);
-            alert("Lỗi xuất file: " + e.message); 
-        }
+            saveAs(await zipOut.generateAsync({type:"blob"}), `HoSo_Final.zip`);
+        } catch (e) { alert("Lỗi xuất file: " + e.message); }
     }
-    window.onload = init;
 </script>
 </body>
 </html>
