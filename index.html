@@ -3,149 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Doc - Final Fix</title>
+    <title>Hệ Thống Xuất Hồ Sơ Dự Án - Bản Pro</title>
     
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://unpkg.com/docxtemplater@3.42.0/build/docxtemplater.js"></script>
     <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
-    <script src="config.js"></script>
     <script>
         window.onload = function() {
-            if (typeof PizZip === 'undefined') {
-                console.log("Thư viện chưa nạp, đang thử nạp lại...");
-                location.reload(); // Tự động F5 nếu nạp lỗi
+            if (typeof PizZip === 'undefined' || typeof window.docxtemplater === 'undefined') {
+                console.warn("Thư viện chưa nạp xong, đang tự động nạp lại...");
+                setTimeout(() => { if(typeof PizZip === 'undefined') location.reload(); }, 1500);
             } else {
-                console.log("PizZip đã sẵn sàng!");
+                console.log("Hệ thống thư viện đã sẵn sàng!");
             }
         };
     </script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="config.js"></script>
+
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #007bff; }
-        .field-box { background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #007bff; display: flex; align-items: center; }
-        .label { width: 120px; font-weight: bold; font-size: 0.85rem; color: #555; }
-        input, select { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
-        .btn { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px; }
-        #status { text-align: center; margin: 10px; font-weight: bold; color: #28a745; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .template-list { border: 1px solid #ddd; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; margin-bottom: 15px; }
+        .tpl-item { display: block; padding: 5px 0; cursor: pointer; }
+        .field-box { background: #e9ecef; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; border-left: 4px solid #007bff; }
+        .label { width: 140px; font-weight: bold; font-size: 0.9rem; }
+        .input-tag { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-scan { background: #28a745; color: white; }
+        .btn-zip { background: #dc3545; color: white; display: none; }
+        #status { text-align: center; margin: 10px; font-style: italic; color: #666; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📄 Trình Tạo Văn Bản</h2>
-    <label>Chọn mẫu văn bản:</label>
-    <select id="templateSelect" onchange="loadTags()"></select>
+    <h2>📄 Hệ Thống Xuất Hồ Sơ Dự Án</h2>
     
+    <strong>1. Chọn các mẫu tài liệu:</strong>
+    <div id="templateList" class="template-list">Đang tải danh sách...</div>
+    
+    <button class="btn btn-scan" onclick="scanAll()">🔍 QUÉT TOÀN BỘ TAG</button>
     <div id="status"></div>
+
     <div id="fields"></div>
     
-    <button class="btn" onclick="generate()">XUẤT FILE WORD (.DOCX)</button>
+    <button class="btn btn-zip" id="zipBtn" onclick="generateZip()">🚀 TẠI FILE ZIP HỒ SƠ</button>
 </div>
 
 <script>
-    // Khởi tạo Firebase
     if (window.firebaseConfig) firebase.initializeApp(window.firebaseConfig);
     const db = firebase.firestore();
 
-    // Lấy danh sách từ Firestore
+    // Tải danh sách checkbox
     db.collection("templates").onSnapshot(snap => {
-        const sel = document.getElementById('templateSelect');
-        sel.innerHTML = '<option value="">-- Chọn mẫu --</option>';
-        snap.forEach(doc => sel.add(new Option(doc.data().name, doc.data().url)));
+        const list = document.getElementById('templateList');
+        list.innerHTML = "";
+        snap.forEach(doc => {
+            const d = doc.data();
+            list.innerHTML += `<label class="tpl-item"><input type="checkbox" class="tpl-check" value="${d.url}" data-name="${d.name}"> ${d.name}</label>`;
+        });
     });
 
-    async function loadTags() {
-        const url = document.getElementById('templateSelect').value;
-        if (!url) return;
+    // Quét tag từ các mẫu đã chọn
+    async function scanAll() {
+        const checked = document.querySelectorAll('.tpl-check:checked');
+        if(checked.length === 0) return alert("Bồ chọn mẫu đã!");
         
-        const status = document.getElementById('status');
         const container = document.getElementById('fields');
-        status.innerText = "⏳ Đang quét mẫu...";
+        const status = document.getElementById('status');
+        status.innerText = "⏳ Đang quét file mẫu...";
+        
+        const allTags = new Set();
+        const now = new Date();
 
         try {
-            const res = await fetch(url);
-            const buffer = await res.arrayBuffer();
-            
-            // Dùng PizZip đúng cách
-            const zip = new PizZip(buffer);
-            const content = zip.files["word/document.xml"].asText();
-            
-            const tags = new Set();
-            const regex = /\{([^{}]+)\}/g;
-            let m;
-            while ((m = regex.exec(content)) !== null) {
-                let t = m[1].replace(/<[^>]+>/g, "").trim();
-                if(t) tags.add(t);
+            for (let input of checked) {
+                const res = await fetch(input.value);
+                const zip = new PizZip(await res.arrayBuffer());
+                const content = zip.files["word/document.xml"].asText();
+                const regex = /\{([^{}]+)\}/g;
+                let m;
+                while ((m = regex.exec(content)) !== null) {
+                    let t = m[1].replace(/<[^>]+>/g, "").trim();
+                    if(t) allTags.add(t);
+                }
             }
 
-            container.innerHTML = "";
-            tags.forEach(t => {
+            container.innerHTML = "<hr><strong>2. Nhập thông tin chung:</strong><br><br>";
+            allTags.forEach(t => {
+                let val = "";
+                if(t.toUpperCase() === "NGAY") val = now.getDate();
+                if(t.toUpperCase() === "THANG") val = now.getMonth() + 1;
+                if(t.toUpperCase() === "NAM") val = now.getFullYear();
+
                 container.innerHTML += `<div class="field-box">
                     <span class="label">${t}:</span>
                     <input type="hidden" class="t-key" value="${t}">
-                    <input type="text" class="t-val" placeholder="Nhập ${t}...">
+                    <input type="text" class="input-tag t-val" value="${val}">
                 </div>`;
             });
-            status.innerText = `✅ Đã thấy ${tags.size} tag!`;
-        } catch (e) {
-            status.innerHTML = `<span style="color:red">Lỗi: ${e.message}</span>`;
-        }
+            status.innerText = `✅ Đã gom ${allTags.size} tag!`;
+            document.getElementById('zipBtn').style.display = "block";
+        } catch (e) { status.innerText = "Lỗi: " + e.message; }
     }
 
-    async function generate() {
-        const select = document.getElementById('templateSelect');
-        const url = select.value;
-        if (!url) return alert("Bồ ơi, chọn mẫu trước đã!");
-    
-        // 1. Lấy tên hiển thị của Template (ví dụ: "Hợp đồng lao động")
-        const templateName = select.options[select.selectedIndex].text;
-    
-        // 2. Tạo chuỗi thời gian: Ngày-Tháng-Năm_Giờ-Phút
-        const now = new Date();
-        const dateStr = `${now.getMonth() + 1}-${now.getDate()}-${now.getFullYear()}`;
-        const timeStr = `${now.getHours()}h${now.getMinutes()}`;
-        
-        // 3. Ghép lại thành tên file hoàn chỉnh
-        const fileName = `${templateName}_${dateStr}_${timeStr}.docx`;
-    
+    // Xuất Zip
+    async function generateZip() {
+        const checked = document.querySelectorAll('.tpl-check:checked');
+        const zipOutput = new JSZip(); // Thư viện nén
         const data = {};
-        const keys = document.querySelectorAll('.tag-key');
-        const values = document.querySelectorAll('.tag-value');
-        keys.forEach((key, index) => {
-            data[key.value] = values[index].value || "...";
+        document.querySelectorAll('.t-key').forEach((k, i) => {
+            data[k.value] = document.querySelectorAll('.t-val')[i].value || "...";
         });
-    
+
         try {
-            const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-            const zip = new PizZip(arrayBuffer);
-            
-            const doc = new window.docxtemplater(zip, { 
-                paragraphLoop: true, 
-                linebreaks: true 
-            });
-    
-            doc.render(data);
-    
-            const out = doc.getZip().generate({
-                type: "blob",
-                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            });
-    
-            // 4. Xuất file với tên đã được cá nhân hóa
-            saveAs(out, fileName);
-        } catch (err) {
-            alert("Lỗi xuất file: " + err.message);
-        }
+            for (let input of checked) {
+                const res = await fetch(input.value);
+                const pZip = new PizZip(await res.arrayBuffer());
+                const doc = new window.docxtemplater(pZip, { paragraphLoop: true, linebreaks: true });
+                doc.render(data);
+                const out = doc.getZip().generate({ type: "blob" });
+                zipOutput.file(`${input.getAttribute('data-name')}.docx`, out);
+            }
+            const zipBlob = await zipOutput.generateAsync({ type: "blob" });
+            saveAs(zipBlob, `Ho_So_${new Date().getTime()}.zip`);
+        } catch (e) { alert("Lỗi: " + e.message); }
     }
 </script>
 </body>
 </html>
-
-
-
