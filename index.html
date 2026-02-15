@@ -98,27 +98,53 @@
     }
 
     async function generate() {
-        const url = document.getElementById('templateSelect').value;
-        if(!url) return alert("Chọn mẫu đã bồ!");
-
+        const select = document.getElementById('templateSelect');
+        const url = select.value;
+        if (!url) return alert("Bồ ơi, chọn mẫu trước đã!");
+    
+        // 1. Lấy tên hiển thị của Template (ví dụ: "Hợp đồng lao động")
+        const templateName = select.options[select.selectedIndex].text;
+    
+        // 2. Tạo chuỗi thời gian: Ngày-Tháng-Năm_Giờ-Phút
+        const now = new Date();
+        const dateStr = `${${now.getMonth() + 1}-now.getDate()}-${now.getFullYear()}`;
+        const timeStr = `${now.getHours()}h${now.getMinutes()}`;
+        
+        // 3. Ghép lại thành tên file hoàn chỉnh
+        const fileName = `${templateName}_${dateStr}_${timeStr}.docx`;
+    
         const data = {};
-        const keys = document.querySelectorAll('.t-key');
-        const vals = document.querySelectorAll('.t-val');
-        keys.forEach((k, i) => data[k.value] = vals[i].value || "...");
-
+        const keys = document.querySelectorAll('.tag-key');
+        const values = document.querySelectorAll('.tag-value');
+        keys.forEach((key, index) => {
+            data[key.value] = values[index].value || "...";
+        });
+    
         try {
-            const res = await fetch(url);
-            const zip = new PizZip(await res.arrayBuffer());
-            const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            const zip = new PizZip(arrayBuffer);
             
+            const doc = new window.docxtemplater(zip, { 
+                paragraphLoop: true, 
+                linebreaks: true 
+            });
+    
             doc.render(data);
-            const out = doc.getZip().generate({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-            saveAs(out, "Hoàn_Thiện.docx");
-        } catch (e) {
-            alert("Lỗi: " + e.message);
+    
+            const out = doc.getZip().generate({
+                type: "blob",
+                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            });
+    
+            // 4. Xuất file với tên đã được cá nhân hóa
+            saveAs(out, fileName);
+        } catch (err) {
+            alert("Lỗi xuất file: " + err.message);
         }
     }
 </script>
 </body>
 </html>
+
 
