@@ -154,32 +154,53 @@
 
     async function generateZip() {
         if (!checkSafety()) return;
+        
+        // --- ĐOẠN FIX QUAN TRỌNG ---
+        const ImageModule = window.DocxtemplaterImageModuleV2 || window.ImageModule;
+        if (!ImageModule) {
+            alert("Image library not loaded yet. Please wait 3s and try again!");
+            return;
+        }
+    
         const checked = document.querySelectorAll('.tpl-check:checked');
         const zipOutput = new JSZip();
         const data = JSON.parse(document.getElementById('previewData').innerText);
-
-        // MODULE ẢNH TẦM VŨ TRỤ: Tự lấy ảnh dựa trên tag name
-        const imgModule = new window.ImageModule({
+    
+        const imgOpts = {
             getImage: function(tagValue) { return dynamicImages[tagValue]; },
             getSize: function(img, tagValue) {
                 if(tagValue.toLowerCase().includes('logo')) return [100, 100];
-                return [150, 60]; // Mặc định cho signature
+                return [150, 60]; 
             }
-        });
-
+        };
+        
+        const imgModule = new ImageModule(imgOpts); // Đã fix constructor
+    
+        document.getElementById('status').innerText = "⏳ Processing...";
         try {
             for (let input of checked) {
                 const res = await fetch(input.value);
+                if (!res.ok) throw new Error(`File not found: ${input.value}`); // Fix lỗi 404
+                
                 const pZip = new PizZip(await res.arrayBuffer());
-                const doc = new window.docxtemplater(pZip, { modules: [imgModule], paragraphLoop: true, linebreaks: true });
+                const doc = new window.docxtemplater(pZip, { 
+                    modules: [imgModule], 
+                    paragraphLoop: true, 
+                    linebreaks: true 
+                });
                 doc.render(data);
                 zipOutput.file(`${input.getAttribute('data-name')}.docx`, doc.getZip().generate({type:"blob"}));
             }
-            saveAs(await zipOutput.generateAsync({type:"blob"}), `Global_Bundle_${Date.now()}.zip`);
-            document.getElementById('status').innerText = "🚀 Mission Success!";
-        } catch (e) { alert("Error: " + e.message); }
+            const finalZip = await zipOutput.generateAsync({type:"blob"});
+            saveAs(finalZip, `Universe_Bundle_${Date.now()}.zip`);
+            document.getElementById('status').innerText = "🚀 Success!";
+        } catch (e) { 
+            console.error(e);
+            alert("Error: " + e.message); 
+        }
     }
     window.onload = init;
 </script>
 </body>
 </html>
+
