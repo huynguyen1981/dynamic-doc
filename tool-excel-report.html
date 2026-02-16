@@ -2,101 +2,90 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Bản Fix Multi-Error Cuối Cùng</title>
+    <title>Bản Fix Triệt Để - Hiện Chữ & Hình</title>
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.21.0/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/docxtemplater-image-module-free@1.1.1/build/imagemodule.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 30px; line-height: 1.6; background: #f0f2f5; }
-        .card { background: white; padding: 25px; border-radius: 12px; max-width: 500px; margin: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        input { display: block; width: 100%; margin: 10px 0 20px; }
-        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; }
-        #log { margin-top: 20px; font-size: 12px; color: red; white-space: pre-wrap; background: #fff1f0; padding: 10px; display: none; border-radius: 5px; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; text-align: center; }
+        .box { background: white; padding: 30px; border-radius: 15px; display: inline-block; text-align: left; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input { display: block; margin-bottom: 15px; width: 100%; }
+        button { width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-<div class="card">
-    <h3>🛠 Fix Triệt Để Multi-Error</h3>
-    <label>1. Word mẫu ({%HINH_ANH})</label>
-    <input type="file" id="wFile">
-    <label>2. Excel (Cột HINH_ANH)</label>
-    <input type="file" id="xFile">
-    <label>3. Chọn ảnh (Phải trùng tên trong Excel)</label>
-    <input type="file" id="iFiles" multiple>
-    <button onclick="doExport()">🚀 XUẤT FILE</button>
-    <div id="status" style="text-align:center; margin-top:10px;">Chờ lệnh...</div>
-    <div id="log"></div>
+
+<div class="box">
+    <h3>📂 Fix lỗi trắng file & Multi-error</h3>
+    <label>1. File Word mẫu:</label>
+    <input type="file" id="w">
+    <label>2. File Excel:</label>
+    <input type="file" id="x">
+    <label>3. Chọn ảnh:</label>
+    <input type="file" id="i" multiple>
+    <button onclick="run()">🚀 XUẤT FILE NGAY</button>
+    <p id="msg" style="font-weight: bold; color: blue;"></p>
 </div>
 
 <script>
-    let photoVault = {};
-    document.getElementById('iFiles').onchange = (e) => {
+    let imgs = {};
+    document.getElementById('i').onchange = (e) => {
         Array.from(e.target.files).forEach(f => {
             const r = new FileReader();
-            r.onload = (ev) => { photoVault[f.name] = ev.target.result; };
+            r.onload = (ev) => { imgs[f.name] = ev.target.result; };
             r.readAsArrayBuffer(f);
         });
     };
 
-    async function doExport() {
-        const log = document.getElementById('log');
-        const st = document.getElementById('status');
-        log.style.display = "none";
+    async function run() {
+        const msg = document.getElementById('msg');
         try {
-            const fW = document.getElementById('wFile').files[0];
-            const fX = document.getElementById('xFile').files[0];
-            if(!fW || !fX) return alert("Thiếu file bồ ơi!");
+            const fW = document.getElementById('w').files[0];
+            const fX = document.getElementById('x').files[0];
+            if(!fW || !fX) return alert("Chọn đủ file bồ ơi!");
 
-            st.innerText = "⏳ Đang chạy...";
-            const xBuf = await fX.arrayBuffer();
-            const data = XLSX.utils.sheet_to_json(XLSX.read(xBuf).Sheets[XLSX.read(xBuf).SheetNames[0]]);
-            const cleanRows = JSON.parse(JSON.stringify(data));
+            msg.innerText = "⏳ Đang kiểm tra dữ liệu...";
+            const xB = await fX.arrayBuffer();
+            const sheet = XLSX.read(xB).Sheets[XLSX.read(xB).SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(sheet);
 
-            const imgOpts = {
-                getImage: (tagV) => {
-                    if (!photoVault[tagV]) {
-                        console.warn("Mất ảnh:", tagV);
-                        return null; // Trả về null để tránh Multi-error
-                    }
-                    return photoVault[tagV];
-                },
-                getSize: () => [400, 300],
-                // Quan trọng: Hàm này giúp bỏ qua lỗi nếu không có ảnh
-                errorHandler: (err, tagName, tagValue) => {
-                    console.log("Lỗi tại thẻ:", tagName);
-                    return ""; 
+            // XỬ LÝ DỮ LIỆU CỰC KỲ CẨN THẬN
+            const cleanData = data.map(item => {
+                let newItem = {};
+                for (let key in item) {
+                    // Loại bỏ các ký tự lạ trong tên cột Excel
+                    let cleanKey = key.trim().replace(/%/g, ''); 
+                    newItem[cleanKey] = item[key];
                 }
-            };
+                return newItem;
+            });
 
             const zip = new window.PizZip(await fW.arrayBuffer());
             const doc = new window.docxtemplater();
             doc.loadZip(zip);
-            
-            const ImgMod = window.ImageModule || window.DocxtemplaterImageModuleV2;
-            doc.attachModule(new ImgMod(imgOpts));
 
-            doc.setData({ rows: cleanRows });
-            
-            try {
-                doc.render();
-            } catch (e) {
-                // Nếu vẫn Multi-error, mổ xẻ tận gốc ở đây
-                if (e.properties && e.properties.errors) {
-                    const msg = e.properties.errors.map(err => err.properties.explanation).join("\n");
-                    log.innerText = "Lỗi chi tiết:\n" + msg;
-                    log.style.display = "block";
-                }
-                throw e;
-            }
+            // CẤU HÌNH IMAGE MODULE AN TOÀN
+            const imgMod = new window.ImageModule({
+                getImage: (name) => imgs[name] || null,
+                getSize: () => [300, 200]
+            });
+            doc.attachModule(imgMod);
+
+            // ÉP KIỂU DỮ LIỆU PHẲNG
+            doc.setData({ rows: cleanData });
+
+            msg.innerText = "⏳ Đang render (Vượt lỗi XML)...";
+            doc.render();
 
             const out = doc.getZip().generate({type: "blob"});
-            saveAs(out, "Bao_Cao_Dut_Diem.docx");
-            st.innerText = "✅ XONG RỒI BỒ ƠI!";
-        } catch (err) {
-            st.innerText = "❌ Thất bại.";
-            console.error(err);
+            saveAs(out, "Ket_Qua_Chuan.docx");
+            msg.innerText = "✅ ĐÃ XUẤT FILE! Mở xem có chữ chưa bồ?";
+
+        } catch (e) {
+            console.error(e);
+            msg.innerText = "❌ Lỗi: " + (e.properties?.errors?.[0]?.properties?.explanation || e.message);
         }
     }
 </script>
