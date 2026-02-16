@@ -2,105 +2,101 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Báo Cáo Hoàn Hảo - Fix Namespace Error</title>
-    
+    <title>Bản Fix Multi-Error Cuối Cùng</title>
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.21.0/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/docxtemplater-image-module-free@1.1.1/build/imagemodule.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding-top: 50px; }
-        .box { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 480px; }
-        h2 { text-align: center; color: #333; }
-        label { display: block; margin: 15px 0 5px; font-weight: bold; font-size: 0.9rem; }
-        input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 15px; background: #2563eb; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        #status { margin-top: 20px; text-align: center; font-weight: 600; color: #666; }
+        body { font-family: sans-serif; padding: 30px; line-height: 1.6; background: #f0f2f5; }
+        .card { background: white; padding: 25px; border-radius: 12px; max-width: 500px; margin: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        input { display: block; width: 100%; margin: 10px 0 20px; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 5px; }
+        #log { margin-top: 20px; font-size: 12px; color: red; white-space: pre-wrap; background: #fff1f0; padding: 10px; display: none; border-radius: 5px; }
     </style>
 </head>
 <body>
-
-<div class="box">
-    <h2>📊 Xuất Báo Cáo Sạch</h2>
-    
-    <label>1. Mẫu Word ({%HINH_ANH})</label>
-    <input type="file" id="wordInp" accept=".docx">
-
-    <label>2. Dữ liệu Excel (Cột HINH_ANH)</label>
-    <input type="file" id="excelInp" accept=".xlsx">
-
-    <label>3. Ảnh khảo sát</label>
-    <input type="file" id="imgInp" multiple accept="image/*">
-
-    <button class="btn" onclick="processReport()">🚀 TẠO BÁO CÁO NGAY</button>
-    <div id="status">Sẵn sàng!</div>
+<div class="card">
+    <h3>🛠 Fix Triệt Để Multi-Error</h3>
+    <label>1. Word mẫu ({%HINH_ANH})</label>
+    <input type="file" id="wFile">
+    <label>2. Excel (Cột HINH_ANH)</label>
+    <input type="file" id="xFile">
+    <label>3. Chọn ảnh (Phải trùng tên trong Excel)</label>
+    <input type="file" id="iFiles" multiple>
+    <button onclick="doExport()">🚀 XUẤT FILE</button>
+    <div id="status" style="text-align:center; margin-top:10px;">Chờ lệnh...</div>
+    <div id="log"></div>
 </div>
 
 <script>
     let photoVault = {};
-
-    // Nạp ảnh vào bộ nhớ ngay khi chọn
-    document.getElementById('imgInp').onchange = (e) => {
-        photoVault = {};
-        Array.from(e.target.files).forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (ev) => { photoVault[file.name] = ev.target.result; };
-            reader.readAsArrayBuffer(file);
+    document.getElementById('iFiles').onchange = (e) => {
+        Array.from(e.target.files).forEach(f => {
+            const r = new FileReader();
+            r.onload = (ev) => { photoVault[f.name] = ev.target.result; };
+            r.readAsArrayBuffer(f);
         });
     };
 
-    async function processReport() {
+    async function doExport() {
+        const log = document.getElementById('log');
         const st = document.getElementById('status');
+        log.style.display = "none";
         try {
-            const fWord = document.getElementById('wordInp').files[0];
-            const fExcel = document.getElementById('excelInp').files[0];
-            if(!fWord || !fExcel) return alert("Bồ chọn thiếu file rồi!");
+            const fW = document.getElementById('wFile').files[0];
+            const fX = document.getElementById('xFile').files[0];
+            if(!fW || !fX) return alert("Thiếu file bồ ơi!");
 
-            st.innerText = "⏳ Đang xử lý dữ liệu sạch...";
+            st.innerText = "⏳ Đang chạy...";
+            const xBuf = await fX.arrayBuffer();
+            const data = XLSX.utils.sheet_to_json(XLSX.read(xBuf).Sheets[XLSX.read(xBuf).SheetNames[0]]);
+            const cleanRows = JSON.parse(JSON.stringify(data));
 
-            // 1. Đọc và "rửa" dữ liệu Excel
-            const exBuf = await fExcel.arrayBuffer();
-            const workbook = XLSX.read(exBuf, {type: 'array'});
-            const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-            const cleanRows = JSON.parse(JSON.stringify(rawData)); // Loại bỏ các thuộc tính lạ gây lỗi
-
-            // 2. Cấu hình Image Module
-            const imgOptions = {
-                getImage: function(tagValue) { return photoVault[tagValue]; },
-                getSize: function() { return [500, 350]; }
+            const imgOpts = {
+                getImage: (tagV) => {
+                    if (!photoVault[tagV]) {
+                        console.warn("Mất ảnh:", tagV);
+                        return null; // Trả về null để tránh Multi-error
+                    }
+                    return photoVault[tagV];
+                },
+                getSize: () => [400, 300],
+                // Quan trọng: Hàm này giúp bỏ qua lỗi nếu không có ảnh
+                errorHandler: (err, tagName, tagValue) => {
+                    console.log("Lỗi tại thẻ:", tagName);
+                    return ""; 
+                }
             };
-            const ImgModule = window.ImageModule || window.DocxtemplaterImageModuleV2;
-            const imgInstance = new ImgModule(imgOptions);
 
-            // 3. Xử lý file Word (Quy trình chuẩn né lỗi Namespace)
-            const wordBuf = await fWord.arrayBuffer();
-            const zip = new window.PizZip(wordBuf);
-            
-            // Khởi tạo docxtemplater theo cách an toàn nhất cho bản 3.21.0
+            const zip = new window.PizZip(await fW.arrayBuffer());
             const doc = new window.docxtemplater();
             doc.loadZip(zip);
-            doc.attachModule(imgInstance); // Gắn module ảnh riêng biệt
             
+            const ImgMod = window.ImageModule || window.DocxtemplaterImageModuleV2;
+            doc.attachModule(new ImgMod(imgOpts));
+
             doc.setData({ rows: cleanRows });
             
-            // Chạy render
-            doc.render();
+            try {
+                doc.render();
+            } catch (e) {
+                // Nếu vẫn Multi-error, mổ xẻ tận gốc ở đây
+                if (e.properties && e.properties.errors) {
+                    const msg = e.properties.errors.map(err => err.properties.explanation).join("\n");
+                    log.innerText = "Lỗi chi tiết:\n" + msg;
+                    log.style.display = "block";
+                }
+                throw e;
+            }
 
-            // 4. Xuất file
-            const out = doc.getZip().generate({
-                type: "blob",
-                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            });
-            
-            saveAs(out, "Bao_Cao_Da_Fix_Loi.docx");
-            st.innerHTML = "<span style='color:green'>✅ Thành công rực rỡ!</span>";
-
-        } catch (e) {
-            console.error(e);
-            st.innerHTML = "<span style='color:red'>❌ Lỗi: " + e.message + "</span>";
-            alert("Vẫn lỗi bồ ơi: " + e.message);
+            const out = doc.getZip().generate({type: "blob"});
+            saveAs(out, "Bao_Cao_Dut_Diem.docx");
+            st.innerText = "✅ XONG RỒI BỒ ƠI!";
+        } catch (err) {
+            st.innerText = "❌ Thất bại.";
+            console.error(err);
         }
     }
 </script>
