@@ -2,88 +2,101 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Bản Fix Trắng File - Chữ Phải Lên</title>
+    <title>Excel to Word - Version 3.24.0</title>
+    
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.21.0/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.24.0/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/docxtemplater-image-module-free@1.1.1/build/imagemodule.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f8fafc; text-align: center; }
-        .box { background: white; padding: 25px; border-radius: 12px; display: inline-block; text-align: left; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 420px; }
-        input { width: 100%; margin: 10px 0 20px; }
-        button { width: 100%; padding: 12px; background: #1d4ed8; color: white; border: none; cursor: pointer; border-radius: 6px; font-weight: bold; }
-        #status { margin-top: 15px; font-weight: bold; color: #334155; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; display: flex; justify-content: center; padding: 40px; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 450px; }
+        h3 { color: #1e293b; text-align: center; margin-bottom: 20px; }
+        label { display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-top: 15px; }
+        input { width: 100%; margin: 8px 0 15px; border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        #status { margin-top: 15px; text-align: center; font-size: 14px; font-weight: 600; color: #334155; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h3>📂 Báo Cáo Không Trắng File</h3>
-    <label>1. Word mẫu:</label> <input type="file" id="w">
-    <label>2. Excel dữ liệu:</label> <input type="file" id="x">
-    <label>3. Chọn ảnh khảo sát:</label> <input type="file" id="i" multiple>
-    <button onclick="handle()">🚀 XUẤT FILE</button>
-    <div id="status">Chưa chạy</div>
+<div class="card">
+    <h3>📊 Báo Cáo Tự Động (v3.24.0)</h3>
+    
+    <label>1. File Word ({#rows} ... {/rows})</label>
+    <input type="file" id="wordFile">
+
+    <label>2. File Excel (Cột HINH_ANH)</label>
+    <input type="file" id="excelFile">
+
+    <label>3. Chọn tất cả ảnh</label>
+    <input type="file" id="imgFiles" multiple>
+
+    <button onclick="execute()">🚀 XUẤT FILE NGAY</button>
+    <div id="status">Sẵn sàng!</div>
 </div>
 
 <script>
-    let photoVault = {};
-    document.getElementById('i').onchange = (e) => {
+    let photoLib = {};
+    document.getElementById('imgFiles').onchange = (e) => {
         Array.from(e.target.files).forEach(f => {
             const r = new FileReader();
-            r.onload = (ev) => { photoVault[f.name] = ev.target.result; };
+            r.onload = (ev) => { photoLib[f.name] = ev.target.result; };
             r.readAsArrayBuffer(f);
         });
     };
 
-    async function handle() {
+    async function execute() {
         const st = document.getElementById('status');
         try {
-            const fW = document.getElementById('w').files[0];
-            const fX = document.getElementById('x').files[0];
-            if(!fW || !fX) return alert("Thiếu file kìa bồ!");
+            const fW = document.getElementById('wordFile').files[0];
+            const fX = document.getElementById('excelFile').files[0];
+            if(!fW || !fX) return alert("Bồ ơi, thiếu file rồi!");
 
-            st.innerText = "⏳ Đang nạp dữ liệu...";
+            st.innerText = "⏳ Đang xử lý...";
+
+            // 1. Đọc Excel và làm sạch dữ liệu
             const xBuf = await fX.arrayBuffer();
-            const data = XLSX.utils.sheet_to_json(XLSX.read(xBuf).Sheets[XLSX.read(xBuf).SheetNames[0]]);
+            const rawData = XLSX.utils.sheet_to_json(XLSX.read(xBuf).Sheets[XLSX.read(xBuf).SheetNames[0]]);
+            const cleanRows = JSON.parse(JSON.stringify(rawData)); // Rửa dữ liệu để né lỗi Namespace
 
-            // Làm sạch dữ liệu để tránh lỗi XML
-            const rows = JSON.parse(JSON.stringify(data));
+            // 2. Cấu hình Image Module cho 3.24.0
+            const imgOptions = {
+                getImage: (name) => photoLib[name] || null,
+                getSize: () => [450, 300]
+            };
+            const ImgModule = window.ImageModule || window.DocxtemplaterImageModuleV2;
 
+            // 3. Khởi tạo Word
             const zip = new window.PizZip(await fW.arrayBuffer());
-            const doc = new window.docxtemplater();
-            doc.loadZip(zip);
-
-            // Cấu hình ảnh: Trả về ảnh trống nếu lỗi để không làm trắng file
-            const imgMod = new window.ImageModule({
-                getImage: function(name) {
-                    if (!photoVault[name]) return null;
-                    return photoVault[name];
-                },
-                getSize: function() { return [400, 300]; }
+            const doc = new window.docxtemplater(zip, {
+                modules: [new ImgModule(imgOptions)],
+                paragraphLoop: true,
+                linebreaks: true
             });
-            doc.attachModule(imgMod);
 
-            // Đặt dữ liệu
-            doc.setData({ rows: rows });
+            // 4. Render với dữ liệu
+            doc.render({ rows: cleanRows });
 
-            st.innerText = "⏳ Đang tạo file Word...";
-            // KHÔNG dùng render trực tiếp để tránh crash trắng trang
-            try {
-                doc.render();
-            } catch (err) {
-                st.innerText = "❌ Lỗi Render: " + err.message;
-                throw err;
-            }
-
-            const out = doc.getZip().generate({type: "blob"});
-            saveAs(out, "Bao_Cao_Chot_Ha.docx");
-            st.innerText = "✅ ĐÃ XUẤT FILE!";
+            const out = doc.getZip().generate({
+                type: "blob",
+                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            });
+            
+            saveAs(out, "Bao_Cao_v324.docx");
+            st.innerText = "✅ Thành công rồi bồ!";
 
         } catch (e) {
             console.error(e);
-            alert("Lỗi hệ thống: " + e.message);
+            // Hiển thị lỗi chi tiết để bồ dễ sửa
+            let errMsg = e.message;
+            if (e.properties && e.properties.errors) {
+                errMsg = e.properties.errors.map(err => err.properties.explanation).join("\n");
+            }
+            alert("Lỗi: " + errMsg);
+            st.innerText = "❌ Thất bại.";
         }
     }
 </script>
