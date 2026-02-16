@@ -2,79 +2,88 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Bản Chốt Cuối - Kiểm Tra Ảnh</title>
+    <title>Bản Fix Trắng File - Chữ Phải Lên</title>
     <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.21.0/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/docxtemplater-image-module-free@1.1.1/build/imagemodule.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; text-align: center; }
-        .box { background: white; padding: 20px; border-radius: 10px; display: inline-block; text-align: left; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 400px; }
-        #debug { margin-top: 15px; font-size: 11px; color: #666; background: #eee; padding: 10px; text-align: left; max-height: 150px; overflow-y: auto; }
+        body { font-family: sans-serif; padding: 20px; background: #f8fafc; text-align: center; }
+        .box { background: white; padding: 25px; border-radius: 12px; display: inline-block; text-align: left; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 420px; }
+        input { width: 100%; margin: 10px 0 20px; }
+        button { width: 100%; padding: 12px; background: #1d4ed8; color: white; border: none; cursor: pointer; border-radius: 6px; font-weight: bold; }
+        #status { margin-top: 15px; font-weight: bold; color: #334155; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h3>🛠 Cứu Vãn Tình Thế</h3>
-    <input type="file" id="w" accept=".docx"> <br>
-    <input type="file" id="x" accept=".xlsx"> <br>
-    <input type="file" id="i" multiple accept="image/*">
-    <div id="debug">Chưa có ảnh nào được nạp...</div>
-    <button onclick="run()" style="width:100%; padding:10px; background:blue; color:white; margin-top:10px;">XUẤT FILE</button>
+    <h3>📂 Báo Cáo Không Trắng File</h3>
+    <label>1. Word mẫu:</label> <input type="file" id="w">
+    <label>2. Excel dữ liệu:</label> <input type="file" id="x">
+    <label>3. Chọn ảnh khảo sát:</label> <input type="file" id="i" multiple>
+    <button onclick="handle()">🚀 XUẤT FILE</button>
+    <div id="status">Chưa chạy</div>
 </div>
 
 <script>
-    let imgs = {};
+    let photoVault = {};
     document.getElementById('i').onchange = (e) => {
-        imgs = {};
-        const names = [];
         Array.from(e.target.files).forEach(f => {
-            names.push(f.name);
             const r = new FileReader();
-            r.onload = (ev) => { imgs[f.name] = ev.target.result; };
+            r.onload = (ev) => { photoVault[f.name] = ev.target.result; };
             r.readAsArrayBuffer(f);
         });
-        document.getElementById('debug').innerText = "Đã nạp ảnh:\n" + names.join("\n");
     };
 
-    async function run() {
+    async function handle() {
+        const st = document.getElementById('status');
         try {
             const fW = document.getElementById('w').files[0];
             const fX = document.getElementById('x').files[0];
-            if(!fW || !fX) return alert("Thiếu file!");
+            if(!fW || !fX) return alert("Thiếu file kìa bồ!");
 
-            const xB = await fX.arrayBuffer();
-            const data = XLSX.utils.sheet_to_json(XLSX.read(xB).Sheets[XLSX.read(xB).SheetNames[0]]);
+            st.innerText = "⏳ Đang nạp dữ liệu...";
+            const xBuf = await fX.arrayBuffer();
+            const data = XLSX.utils.sheet_to_json(XLSX.read(xBuf).Sheets[XLSX.read(xBuf).SheetNames[0]]);
+
+            // Làm sạch dữ liệu để tránh lỗi XML
+            const rows = JSON.parse(JSON.stringify(data));
 
             const zip = new window.PizZip(await fW.arrayBuffer());
             const doc = new window.docxtemplater();
             doc.loadZip(zip);
 
+            // Cấu hình ảnh: Trả về ảnh trống nếu lỗi để không làm trắng file
             const imgMod = new window.ImageModule({
-                getImage: (name) => {
-                    if (!imgs[name]) {
-                        console.error("Không thấy ảnh: " + name);
-                        return null; 
-                    }
-                    return imgs[name];
+                getImage: function(name) {
+                    if (!photoVault[name]) return null;
+                    return photoVault[name];
                 },
-                getSize: () => [300, 200]
+                getSize: function() { return [400, 300]; }
             });
             doc.attachModule(imgMod);
 
-            // ĐỔ DỮ LIỆU PHẲNG (Dùng dòng đầu tiên của Excel để test)
-            // Word chỉ cần gõ: {TEN} và {%HINH_ANH} (không cần rows)
-            doc.setData(data[0]); 
+            // Đặt dữ liệu
+            doc.setData({ rows: rows });
 
-            doc.render();
-            saveAs(doc.getZip().generate({type: "blob"}), "Test_Thoi.docx");
-            alert("Đã xuất! Nếu file có chữ mà không có hình, bồ kiểm tra lại tên file ảnh trong debug nhé!");
+            st.innerText = "⏳ Đang tạo file Word...";
+            // KHÔNG dùng render trực tiếp để tránh crash trắng trang
+            try {
+                doc.render();
+            } catch (err) {
+                st.innerText = "❌ Lỗi Render: " + err.message;
+                throw err;
+            }
+
+            const out = doc.getZip().generate({type: "blob"});
+            saveAs(out, "Bao_Cao_Chot_Ha.docx");
+            st.innerText = "✅ ĐÃ XUẤT FILE!";
 
         } catch (e) {
             console.error(e);
-            alert("Lỗi: " + e.message);
+            alert("Lỗi hệ thống: " + e.message);
         }
     }
 </script>
